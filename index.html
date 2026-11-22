@@ -1,0 +1,1594 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f3e9">
+  <meta name="description" content="8×8 보드에서 순차 배치와 3개 중 선택 모드로 즐기는 블록 퍼즐. 가로줄과 세로줄을 채워 점수를 얻으세요.">
+  <title>테트리스 보드</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2056%2048%22%20fill%3D%22none%22%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14h15v17h-2v5H34v7H17V31H2V14h20z%22%20fill%3D%22%23263342%22%20stroke%3D%22%23263342%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M3%2015h16v15H3z%22%20fill%3D%22%23F68A71%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2015h16v15H19z%22%20fill%3D%22%23FA977D%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2030h16v13H19z%22%20fill%3D%22%23DA6C57%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14H22z%22%20fill%3D%22%2386D7BC%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M36%2017h16v15H36z%22%20fill%3D%22%23F9C75E%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M6%2018h8m9%200h7m-5-13h8m6%2015h8m-25%2013h7%22%20stroke%3D%22%23FFF4D9%22%20stroke-width%3D%222%22%2F%3E%0A%3C%2Fsvg%3E%0A">
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #283443;
+  --paper: #f6f3e9;
+  --case: #fffcf2;
+  --muted: #596462;
+  --rule: #c7c5b8;
+  --orange: #f78b70;
+  --gold: #ffd16d;
+  --mono: Consolas, "SFMono-Regular", "Liberation Mono", monospace;
+  --grid-gap: clamp(2px, .22vw, 3px);
+  --shield-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23283443' d='M2 1h12v8h-1v2h-2v2H9v2H7v-2H5v-2H3V9H2z'/%3E%3Cpath fill='%23fff5d8' d='M4 3h8v5h-1v2H9v2H7v-2H5V8H4z'/%3E%3Cpath fill='%23748896' d='M8 4h3v4h-1v2H8z'/%3E%3C/svg%3E");
+  font-family: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+* { box-sizing: border-box; }
+body {
+  min-height: 100svh;
+  margin: 0;
+  background-image: radial-gradient(#b6b5a9 .8px, transparent .9px);
+  background-size: 12px 12px;
+  background-position: 5px 5px;
+  word-break: keep-all;
+}
+button { color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:disabled { cursor: default; }
+button:focus-visible, .board:focus-visible { outline: 3px solid #1c71a6; outline-offset: 4px; }
+button { -webkit-user-select: none; user-select: none; }
+h1, h2, p { margin: 0; }
+[hidden] { display: none !important; }
+.symbol-bank { position: absolute; width: 0; height: 0; overflow: hidden; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.icon {
+  width: 21px; height: 21px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.masthead {
+  background: #fcfaef;
+  border-bottom: 2px solid var(--ink);
+}
+.masthead-inner {
+  max-width: 1152px; min-height: 86px; padding: 14px 38px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+}
+.brand { display: flex; align-items: center; gap: 12px; line-height: 1; }
+.brand-mark { display: block; width: 51px; height: 45px; }
+.wordmark { font-size: clamp(1.9rem, 2.6vw, 2.35rem); font-weight: 900; line-height: 1.15; letter-spacing: -.055em; white-space: nowrap; }
+.header-controls, .utility-button, .action-button { display: flex; align-items: center; justify-content: center; }
+.header-controls { gap: 12px; }
+.utility-button, .action-button, .close-button {
+  background: var(--case); border: 2px solid var(--ink); border-radius: 8px;
+  box-shadow: 2px 3px 0 var(--ink); font-weight: 750;
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+  touch-action: manipulation;
+}
+.utility-button { min-height: 40px; gap: 8px; padding: 7px 13px; font-size: .875rem; }
+.utility-button .icon { width: 18px; height: 18px; }
+.sound-button { width: 42px; padding-inline: 0; }
+.sound-button[aria-pressed="false"] { background-color: #e9e6dc; }
+@media (hover: hover) {
+  .utility-button:hover, .action-button:not(:disabled):hover, .close-button:hover { transform: translate(-1px, -1px); box-shadow: 3px 4px 0 var(--ink); }
+  .new-button:hover { background-color: #ff9c80; }
+}
+.utility-button:active, .action-button:not(:disabled):active, .close-button:active { transform: translate(2px, 2px); box-shadow: 0 1px 0 var(--ink); }
+
+.desk { width: min(100% - 64px, 998px); margin: 36px auto 0; padding-bottom: 24px; }
+.game-layout {
+  display: grid; grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto; grid-template-areas: "board score" "board tray" "board actions";
+  column-gap: 25px; row-gap: 20px; align-items: stretch;
+}
+.case {
+  min-width: 0; background: var(--case); border: 2px solid var(--ink);
+  border-radius: 15px; box-shadow: 4px 5px 0 var(--ink);
+}
+.section-title { display: flex; align-items: center; gap: 9px; font-size: 1.13rem; font-weight: 800; line-height: 1.4; letter-spacing: -.055em; }
+.section-title .icon { width: 21px; height: 21px; }
+.board-case { grid-area: board; padding: 0 16px; align-self: start; }
+.board-heading, .tray-heading, .case-foot { display: flex; align-items: center; justify-content: space-between; }
+.board-heading { min-height: 51px; padding: 4px 3px; gap: 8px; }
+.mode-switch { display: inline-flex; padding: 2px; gap: 2px; background: #e9e7d9; border: 1px solid #b3b4a5; border-radius: 7px; }
+.mode-switch button { border: 1px solid transparent; border-radius: 4px; padding: 5px 9px; background: transparent; color: #53605b; font-size: .8rem; font-weight: 750; white-space: nowrap; }
+.mode-switch button[aria-pressed="true"] { color: var(--ink); background: var(--gold); border-color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
+.board-size {
+  padding: 3px 7px; background: #e9e7d9; border-radius: 4px; border: 1px solid #c2c1b4;
+  font: bold .8rem/1.1 var(--mono); letter-spacing: .02em; white-space: nowrap;
+}
+.board-well {
+  position: relative; padding: 7px; border: 2px solid var(--ink); border-radius: 9px;
+  cursor: crosshair;
+  background: #25303c; box-shadow: inset 0 3px 0 #17212b, 0 2px 0 #dedbcf;
+}
+.board-surface { position: relative; }
+.board, .effects {
+  display: grid; grid-template-columns: repeat(var(--board-size), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--board-size), minmax(0, 1fr)); gap: var(--grid-gap);
+}
+.board { aspect-ratio: 1; border-radius: 3px; outline-offset: 1px; touch-action: manipulation; }
+.board-row { display: contents; }
+.cell {
+  position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 3px;
+  background-color: #354353; box-shadow: inset 0 1px 0 #415060, inset 0 -2px 0 #303d4c;
+}
+[data-color="1"], [data-ghost="1"] { --face: #f68670; --light: #ffbaa0; --shade: #c96457; --edge: #a8534a; }
+[data-color="2"], [data-ghost="2"] { --face: #77cfb1; --light: #b7efd2; --shade: #4da68a; --edge: #3f8777; }
+[data-color="3"], [data-ghost="3"] { --face: #f8c862; --light: #ffe7a0; --shade: #d49a45; --edge: #ac7b39; }
+[data-color="4"], [data-ghost="4"] { --face: #80b5df; --light: #b9dcf4; --shade: #5689b5; --edge: #467599; }
+[data-color="5"], [data-ghost="5"] { --face: #b39bdc; --light: #ddcaf5; --shade: #8973b9; --edge: #74619c; }
+[data-color="6"], [data-ghost="6"] { --face: #eee8ca; --light: #fff9e8; --shade: #c7bda0; --edge: #a5987d; }
+[data-color="7"], [data-ghost="7"] { --face: #b2d866; --light: #daefa1; --shade: #8bb147; --edge: #719137; }
+[data-color="8"], [data-ghost="8"] { --face: #ea9ac5; --light: #fbd0e6; --shade: #c572a1; --edge: #a45e85; }
+[data-color="9"], [data-ghost="9"] { --face: #49bec9; --light: #98e5e8; --shade: #3195a2; --edge: #287782; }
+[data-color="10"], [data-ghost="10"] { --face: #ee9c46; --light: #ffca8a; --shade: #c27530; --edge: #a2602c; }
+[data-color="11"], [data-ghost="11"] { --face: #788ad9; --light: #b5c2f6; --shade: #586bb9; --edge: #4b5997; }
+[data-color="12"], [data-ghost="12"] { --face: #cf526d; --light: #f6a0b4; --shade: #a43656; --edge: #812940; }
+.block, .cell[data-color]:not([data-color="0"]), .cell[data-ghost], .effect-tile {
+  background: linear-gradient(to bottom, var(--light) 0 8%, var(--face) 8% 84%, var(--shade) 84% 100%);
+  border-radius: 3px; box-shadow: inset 1px 0 0 var(--light), inset -2px 0 0 var(--shade), inset 0 -1px 0 var(--edge);
+}
+.block, .effect-tile { position: relative; }
+:where(.block, .cell[data-color]:not([data-color="0"]), .cell[data-ghost], .effect-tile)::before {
+  content: ""; position: absolute; top: 15%; left: 13%; width: 22%; height: 7%; background: var(--light); border-radius: 1px;
+}
+.block::after, .cell[data-color]:not([data-color="0"])::after, .cell[data-ghost]::after, .effect-tile::after {
+  content: ""; position: absolute; top: 21%; left: 13%; width: 7%; height: 12%; background: var(--light); border-radius: 1px;
+}
+.shielded::before, .ghost-shield::before {
+  content: ""; position: absolute; top: 10%; left: 16%; width: 68%; height: 72%;
+  background: var(--shield-icon) center / contain no-repeat; pointer-events: none;
+}
+.cell[data-ghost] { opacity: .68; outline: 2px dashed #fff9e8; outline-offset: -3px; }
+.cell.conflict {
+  background-image: repeating-linear-gradient(-45deg, #e58373b3 0 3px, #693f4966 3px 8px);
+  outline: 2px solid #ffa995; outline-offset: -2px;
+}
+.cell.will-clear { outline: 2px solid #ffe3a0; outline-offset: -2px; }
+.cell.will-crack { outline: 2px dashed #ffe3a0; outline-offset: -2px; }
+.cell.anchor::after { content: ""; position: absolute; inset: 22%; width: auto; height: auto; background: transparent; border: 2px solid var(--ink); }
+.cell.anchor.ghost-shield::after { inset: 5%; }
+.case-foot { min-height: 37px; padding: 0 4px; gap: 8px; }
+.game-status { display: flex; align-items: center; gap: 8px; font-weight: 650; font-size: .82rem; color: #485653; }
+.status-light { width: 9px; height: 9px; border-radius: 50%; background: #75c9a4; border: 1.5px solid var(--ink); }
+.status-light[data-mode="over"] { background: var(--orange); }
+.vents { display: flex; gap: 4px; padding-right: 2px; }
+.vents i { width: 4px; height: 11px; border-radius: 2px; transform: skewX(-20deg); background: #82887f; }
+
+.score-case { grid-area: score; background: var(--gold); overflow: hidden; }
+.score-face {
+  min-height: 151px; padding: 24px; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; position: relative; isolation: isolate;
+}
+.score-face::after {
+  content: ""; position: absolute; z-index: -1; inset: 0 0 0 57%; pointer-events: none;
+  background-image: radial-gradient(#bf8f43 1px, transparent 1px);
+  background-size: 6px 6px; opacity: .32; mask-image: linear-gradient(90deg, transparent, #000 58%);
+}
+.score-main { flex: 1; min-width: 0; }
+.score-main h2 { font-size: 1rem; font-weight: 800; letter-spacing: -.045em; }
+.score-readout { margin-top: 13px; display: flex; align-items: center; }
+.score-readout svg { display: block; width: min(100%, 190px); height: auto; max-height: 46px; fill: var(--ink); shape-rendering: crispEdges; }
+.score-leading { fill: #987238; }
+.mascot-scene { position: relative; flex: 0 0 103px; align-self: center; height: 97px; }
+.mascot { position: absolute; width: 92%; height: auto; right: 1%; bottom: 2%; overflow: visible; }
+.spark { position: absolute; fill: #725731; }
+.spark-large { width: 16px; top: 8px; left: 4px; }
+.spark-small { width: 10px; top: 23px; right: -4px; }
+.mascot.happy { animation: hop .4s ease-in-out 2; transform-origin: 50% 90%; }
+@keyframes hop { 45% { transform: translateY(-8px) rotate(-5deg); } }
+.stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--ink); background: #ffe1a0; }
+.stat { min-width: 0; padding: 14px 20px 15px; }
+.stat + .stat { border-left: 1.5px solid #a38853; }
+.stat > span { display: flex; align-items: center; gap: 6px; font-size: .86rem; font-weight: 700; }
+.stat .icon { width: 17px; height: 17px; }
+.stat strong { display: block; margin-top: 3px; font: 800 1.5rem/1.15 var(--mono); letter-spacing: -.045em; overflow-wrap: anywhere; }
+.stat small { margin-left: 5px; font: 700 .81rem/1 "Malgun Gothic", sans-serif; }
+
+.tray-case { grid-area: tray; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+.tray-heading { gap: 8px; }
+.turn-controls, .turn-button { display: flex; align-items: center; }
+.turn-controls { gap: 4px; }
+.turn-button {
+  justify-content: center; gap: 4px; min-width: 37px; min-height: 32px; padding: 3px 6px;
+  border: 1.5px solid var(--ink); border-radius: 5px; background: #f7f4e6;
+  box-shadow: 0 2px 0 var(--ink); font: 700 .84rem var(--mono); touch-action: manipulation;
+}
+.turn-button .icon { width: 15px; height: 15px; }
+.turn-button[data-turn="1"] .icon { transform: scaleX(-1); }
+.turn-button:disabled { color: #747b72; border-color: #a8ada0; box-shadow: 0 2px 0 #a8ada0; }
+.turn-button:not(:disabled):active { background: #faeabd; transform: translateY(1px); box-shadow: none; }
+.rack { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 9px; }
+.rack[data-mode="choice"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.piece-card {
+  --rack-unit: clamp(16px, 1.75vw, 24px);
+  display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 4px;
+  height: clamp(98px, 11.7vw, 139px); padding: 8px;
+  background-color: #f1efe4; background-image: radial-gradient(#d5d3c4 1px, transparent 1px); background-size: 7px 7px;
+  border: 1.5px solid #c4c3b5; border-radius: 8px;
+}
+button.piece-card { touch-action: none; -webkit-touch-callout: none; cursor: grab; }
+.current-piece { border: 2px solid var(--ink); background-color: #fbefd1; background-image: radial-gradient(#e4cf9d 1px, transparent 1px); }
+.piece-card.spent { cursor: default; border-style: dashed; background: #eeede4; }
+.piece-card.spent .piece-space::after { content: ""; width: 12px; height: 3px; background: #afb2a8; border-radius: 2px; }
+.next-piece { --rack-unit: clamp(13px, 1.35vw, 18px); }
+.piece-caption { justify-self: start; font-size: .77rem; font-weight: 750; line-height: 1.2; color: var(--muted); }
+.current-piece .piece-caption { color: var(--ink); }
+.piece-space { display: grid; place-content: center; container-type: size; min-width: 0; min-height: 0; pointer-events: none; }
+.piece-art { display: grid; grid-template-columns: repeat(var(--cols), var(--unit)); grid-template-rows: repeat(var(--rows), var(--unit)); gap: 1px; }
+.piece-card .piece-art { --unit: var(--rack-unit); }
+@supports (width: 1cqw) {
+  .piece-card .piece-art { --unit: min(var(--rack-unit), calc((100cqw - 4px) / var(--cols)), calc((100cqh - 4px) / var(--rows))); }
+}
+.piece-art .block { box-shadow: inset 1px 0 var(--light), inset -1px 0 var(--shade), inset 0 -1px var(--edge), 0 0 0 .5px var(--edge); border-radius: 2px; }
+kbd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 19px; min-height: 19px; padding: 1px 4px;
+  font: 650 .75rem/1.1 var(--mono); color: #59655f;
+  border: 1px solid #a9afa2; border-bottom-width: 2px; border-radius: 4px; background: #fbf9f0;
+}
+@media (hover: hover) { button.piece-card:not(:disabled):hover { background-color: #fae5ad; } }
+button.piece-card:not(:disabled):active { cursor: grabbing; }
+.current-piece.is-dragging .piece-art { opacity: .32; }
+.tray-hint { display: flex; align-items: flex-start; gap: 10px; padding-top: 16px; border-top: 1px dashed #b9bbad; }
+.tray-hint > .icon { width: 21px; height: 21px; }
+.tray-hint p { font-size: .94rem; line-height: 1.55; font-weight: 720; letter-spacing: -.035em; }
+.tray-hint p span { color: var(--muted); font-size: .875rem; font-weight: 500; }
+.shield-key { display: inline-block; flex: none; width: 20px; height: 20px; vertical-align: middle; background: var(--shield-icon) center / contain no-repeat; }
+.compact-hint { display: none; }
+.game-actions, .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.game-actions { grid-area: actions; align-self: end; }
+.action-button { min-height: 49px; gap: 9px; padding: 8px 11px; font-size: 1rem; letter-spacing: -.04em; }
+.undo-count { font: bold .85em/1 var(--mono); letter-spacing: 0; white-space: nowrap; }
+.new-button { background: var(--orange); }
+.action-button:disabled { border-color: #8c938a; box-shadow: 2px 3px 0 #8c938a; color: #6c746d; background: #edece2; }
+.keyboard-guide { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 19px; width: fit-content; margin: 25px auto 0; padding: 4px 12px; color: #53605c; background: var(--paper); border-radius: 4px; }
+.keyboard-guide > .icon { width: 19px; height: 19px; }
+.keyboard-guide > span { display: inline-flex; align-items: center; gap: 6px; }
+.keyboard-guide > span { font-size: .8rem; font-weight: 600; }
+.keyboard-guide kbd { min-height: 19px; }
+
+.effects { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.effect-tile { animation: line-clear .43s ease-out both; }
+.effect-tile.shield-break { background: transparent; box-shadow: none; animation: shield-break .4s ease-out both; }
+.effect-tile.shield-break::after { display: none; }
+@keyframes shield-break { 35% { transform: translateY(-5%) scale(1.16); } 100% { opacity: 0; transform: translateY(-22%) scale(.64); } }
+.placed-tile { animation: place .19s ease-out; }
+@keyframes line-clear { 0% { opacity: 1; } 32% { background: #fff4be; transform: scale(1); } 100% { opacity: 0; transform: scale(.47); } }
+@keyframes place { from { transform: scale(.78); filter: brightness(1.28); } 72% { transform: scale(1.04); } }
+.clear-toast {
+  pointer-events: none; position: absolute; z-index: 2; top: 43%; left: 50%; display: flex; align-items: center;
+  gap: 8px; padding: 8px 13px; border: 2px solid var(--ink); border-radius: 7px; background: #ffe19a;
+  box-shadow: 3px 3px 0 var(--ink); white-space: nowrap; font-size: .95rem; font-weight: 800;
+  opacity: 0; transform: translate(-50%, -50%);
+}
+.clear-toast .icon { width: 15px; height: 15px; }
+.clear-toast b { font: bold .88rem var(--mono); }
+.clear-toast.show { animation: clear-notice 1.25s ease-out both; }
+@keyframes clear-notice {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(.9); }
+  14%, 78% { opacity: 1; transform: translate(-50%, -50%); }
+  100% { opacity: 0; transform: translate(-50%, -80%); }
+}
+.carry { position: fixed; top: 0; left: 0; z-index: 5; display: none; pointer-events: none; opacity: .9; }
+.carry .piece-art { gap: var(--grid-gap); filter: drop-shadow(2px 4px 1px #15202f55); }
+body.dragging { cursor: grabbing; user-select: none; }
+body.drag-over-board, body.drag-over-board .current-piece.is-dragging { cursor: crosshair; }
+
+dialog { width: min(410px, calc(100% - 36px)); max-height: calc(100svh - 36px); padding: 0; border: 2px solid var(--ink); border-radius: 14px; background: var(--case); color: var(--ink); box-shadow: 5px 6px 0 var(--ink); }
+dialog::backdrop { background: #202b3bbb; }
+.dialog-shell { padding: 26px; }
+.close-button { position: absolute; right: 16px; top: 15px; display: grid; place-content: center; width: 34px; height: 34px; padding: 0; }
+.close-button .icon { width: 17px; height: 17px; }
+.dialog-mark { margin-bottom: 12px; }
+#dialog-title { font-size: 1.48rem; letter-spacing: -.055em; }
+.dialog-view { margin-top: 14px; }
+.dialog-view p { font-size: 1rem; line-height: 1.65; letter-spacing: -.035em; }
+.dialog-view p + p { margin-top: 10px; }
+.dialog-primary, .dialog-actions { width: 100%; margin-top: 22px; }
+.end-score { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 13px; border: 1.5px solid var(--ink); border-radius: 7px; background: var(--gold); }
+.end-score b { font-size: 1.35rem; }
+
+@media (min-width: 761px) and (max-height: 815px) {
+  .masthead-inner { min-height: 70px; padding-block: 10px; }
+  .desk { width: min(100% - 54px, 980px, calc(160svh - 255px)); margin-top: 24px; padding-bottom: 11px; }
+  .game-layout { gap: 16px 22px; }
+  .board-heading { min-height: 45px; }
+  .case-foot { min-height: 32px; }
+  .score-face { min-height: 132px; padding: 18px 21px; }
+  .tray-case { padding: 18px; gap: 12px; }
+  .piece-card { height: clamp(84px, 15svh, 118px); }
+  .keyboard-guide { margin-top: 14px; }
+}
+@media (min-width: 761px) and (max-width: 930px) {
+  .desk { width: calc(100% - 40px); }
+  .game-layout { column-gap: 16px; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .tray-case { padding: 15px; gap: 12px; }
+  .score-face { padding: 16px; min-height: 118px; }
+  .mascot-scene { flex-basis: 77px; height: 77px; }
+  .piece-card { height: 90px; }
+  .stat { padding: 10px 14px; }
+}
+@media (max-width: 760px) {
+  body { background-size: 10px 10px; }
+  .masthead-inner { padding: 10px 17px; min-height: 62px; gap: 10px; }
+  .brand { gap: 6px; }
+  .brand-mark { width: 36px; height: 33px; }
+  .wordmark { font-size: clamp(1.18rem, 5.2vw, 1.7rem); }
+  .header-controls { gap: 7px; }
+  .utility-button { min-height: 35px; gap: 5px; padding: 5px 8px; font-size: .8rem; border-radius: 6px; }
+  .sound-button { width: 34px; padding: 0; }
+  .utility-button .icon { width: 16px; height: 16px; }
+  .desk { width: min(100% - 32px, 470px); margin-top: 15px; padding-bottom: 20px; }
+  .game-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "score" "board" "tray" "actions"; gap: 12px; }
+  .case { border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); }
+  .score-case { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .score-face { padding: 10px 9px 11px 13px; min-height: 66px; gap: 4px; }
+  .score-main h2 { font-size: .78rem; }
+  .score-readout { margin-top: 4px; }
+  .score-readout svg { width: 112px; max-height: 27px; }
+  .mascot-scene { flex-basis: clamp(37px, 11vw, 56px); height: 48px; }
+  .spark-large { width: 7px; top: 5px; left: 1px; }
+  .spark-small { display: none; }
+  .stats { align-items: center; border-top: 0; border-left: 1.5px solid var(--ink); }
+  .stat { padding: 1px 5px; text-align: center; }
+  .stat > span { justify-content: center; gap: 3px; font-size: .74rem; white-space: nowrap; }
+  .stat .icon { width: 13px; height: 13px; }
+  .stat strong { margin-top: 5px; font-size: 1.12rem; }
+  .stat small { font-size: .7rem; margin-left: 2px; }
+  .board-case { padding: 0 9px; }
+  .board-heading { min-height: 35px; padding-inline: 1px; }
+  .section-title { gap: 6px; font-size: .96rem; }
+  .section-title .icon { width: 18px; height: 18px; }
+  .board-size { padding: 2px 5px; font-size: .72rem; }
+  .board-well { border-radius: 6px; padding: 4px; }
+  .cell { border-radius: 2px; }
+  .case-foot { min-height: 25px; padding: 0 1px; }
+  .game-status { font-size: .75rem; gap: 5px; }
+  .status-light { width: 7px; height: 7px; }
+  .vents { gap: 3px; }
+  .vents i { height: 7px; width: 3px; }
+  .tray-case { padding: 10px 12px; gap: 8px; }
+  .turn-button { min-height: 36px; min-width: 39px; }
+  .rack { gap: 7px; }
+  .piece-card { height: 80px; padding: 5px 7px; gap: 2px; border-radius: 5px; }
+  .current-piece { --rack-unit: clamp(15px, 4.5vw, 20px); }
+  .next-piece { --rack-unit: clamp(12px, 3.6vw, 16px); }
+  .piece-caption { font-size: .72rem; }
+  .wide-hint { display: none; }
+  .compact-hint { display: block; }
+  .tray-hint { padding-top: 7px; gap: 5px; align-items: center; }
+  .tray-hint > .icon { width: 15px; height: 15px; }
+  .tray-hint p { font-size: .82rem; line-height: 1.4; }
+  .action-button { min-height: 41px; font-size: .88rem; }
+  .action-button .icon { width: 17px; height: 17px; }
+  .keyboard-guide { display: none; }
+}
+@media (max-width: 380px) {
+  .masthead-inner { padding-inline: 12px; }
+  .desk { width: calc(100% - 22px); }
+  .stat .icon { display: none; }
+  .tray-hint { align-items: flex-start; }
+}
+@media (max-width: 460px) {
+  .board-heading { display: grid; grid-template-columns: 1fr auto; padding-block: 6px; gap: 5px; }
+  .mode-switch { order: 1; grid-column: 1 / -1; }
+  .mode-switch button { flex: 1; min-height: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
+  .clear-toast.show { animation: none !important; opacity: 1; }
+}
+
+</style>
+  
+  
+</head>
+<body>
+  <svg class="symbol-bank" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3zM16 9l6 6m0-6-6 6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 0 1 5 .8c0 2-2.5 2.1-2.5 4"/><path d="M12 16.8h.01"/></symbol>
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M9.3 4v16M14.7 4v16M4 9.3h16M4 14.7h16"/></symbol>
+    <symbol id="i-tray" viewBox="0 0 24 24"><path d="M3 12h5v5H3zm6.5-6.5h5v5h-5zm0 6.5h5v5h-5zm6.5 0h5v5h-5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7.5 4h9v5.5a4.5 4.5 0 0 1-9 0zM7.5 6H4v2.5A3.5 3.5 0 0 0 8 12m8 0a3.5 3.5 0 0 0 4-3.5V6h-3.5M12 14v4m-4 2h8m-6-2h4"/></symbol>
+    <symbol id="i-lines" viewBox="0 0 24 24"><path d="M3.5 6h4m3 0h10M3.5 12h17m-17 6h10m3 0h4"/></symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m4.5 3.5 14 9-6.8 1.1-3.3 6.2z"/><path d="m12.4 14 3.2 5"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="m9 4-5.5 5.5L9 15M4 9.5h10a6 6 0 0 1 0 12" transform="translate(0 -1)"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 5v5h5M4.5 9a8 8 0 1 1 0 6"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5.5" width="20" height="13" rx="2"/><path d="M5.5 9.5h.5m3 0h.5m3 0h.5m3 0h.5m2.5 0h.2M6 14h1m3 0h7"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2c.6 6.3 3.7 9.3 10 10-6.3.6-9.4 3.7-10 10-.7-6.3-3.7-9.4-10-10 6.3-.7 9.3-3.7 10-10z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12m0-12L6 18"/></symbol>
+  </svg>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1 class="brand">
+        <img class="brand-mark" src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2056%2048%22%20fill%3D%22none%22%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14h15v17h-2v5H34v7H17V31H2V14h20z%22%20fill%3D%22%23263342%22%20stroke%3D%22%23263342%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M3%2015h16v15H3z%22%20fill%3D%22%23F68A71%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2015h16v15H19z%22%20fill%3D%22%23FA977D%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2030h16v13H19z%22%20fill%3D%22%23DA6C57%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14H22z%22%20fill%3D%22%2386D7BC%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M36%2017h16v15H36z%22%20fill%3D%22%23F9C75E%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M6%2018h8m9%200h7m-5-13h8m6%2015h8m-25%2013h7%22%20stroke%3D%22%23FFF4D9%22%20stroke-width%3D%222%22%2F%3E%0A%3C%2Fsvg%3E%0A" width="52" height="48" alt="">
+        <span class="wordmark">테트리스 보드</span>
+      </h1>
+      <div class="header-controls">
+        <button type="button" id="sound" class="utility-button sound-button" aria-pressed="true" aria-label="효과음" title="효과음 끄기">
+          <svg class="icon" aria-hidden="true"><use id="sound-icon" href="#i-sound"/></svg>
+        </button>
+        <button type="button" id="help" class="utility-button">
+          <svg class="icon" aria-hidden="true"><use href="#i-help"/></svg><span>게임 방법</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="desk">
+    <div class="game-layout">
+      <section class="board-case case" aria-labelledby="board-title">
+        <div class="board-heading">
+          <h2 id="board-title" class="section-title"><svg class="icon" aria-hidden="true"><use href="#i-board"/></svg>게임 보드</h2>
+          <div class="mode-switch" role="group" aria-label="게임 모드">
+            <button type="button" data-mode="sequence" aria-pressed="true">순차 배치</button>
+            <button type="button" data-mode="choice" aria-pressed="false">3개 중 선택</button>
+          </div>
+          <span class="board-size" id="board-size">8 × 8</span>
+        </div>
+        <div class="board-well">
+          <div class="board-surface">
+            <div id="board" class="board" role="grid" aria-label="게임 보드" tabindex="0" aria-describedby="board-help"></div>
+            <div id="effects" class="effects" aria-hidden="true"></div>
+          </div>
+          <div id="clear-toast" class="clear-toast" aria-hidden="true"><svg class="icon"><use href="#i-star"/></svg><span id="toast-title"></span><b id="toast-points"></b></div>
+        </div>
+        <div class="case-foot">
+          <div class="game-status"><span id="status-light" class="status-light"></span><span id="status-text">플레이 중</span></div>
+          <div class="vents" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <p class="sr-only" id="board-help"></p>
+      </section>
+
+      <section class="score-case case" aria-labelledby="score-title">
+        <div class="score-face">
+          <div class="score-main">
+            <h2 id="score-title">현재 점수</h2>
+            <div class="score-readout"><svg id="score-digits" viewBox="0 0 29 7" aria-hidden="true"></svg><span class="sr-only" id="score-value">0점</span></div>
+          </div>
+          <div class="mascot-scene" aria-hidden="true">
+            <svg class="spark spark-large" viewBox="0 0 9 9"><path d="M4 0h1v3h1v1h3v1H6v1H5v3H4V6H3V5H0V4h3V3h1z"/></svg>
+            <svg id="mascot" class="mascot" viewBox="0 0 28 28" shape-rendering="crispEdges"></svg>
+            <svg class="spark spark-small" viewBox="0 0 9 9"><path d="M4 0h1v3h1v1h3v1H6v1H5v3H4V6H3V5H0V4h3V3h1z"/></svg>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span><svg class="icon" aria-hidden="true"><use href="#i-trophy"/></svg>최고 기록</span><strong id="best">0</strong></div>
+          <div class="stat"><span><svg class="icon" aria-hidden="true"><use href="#i-lines"/></svg>지운 줄</span><strong><span id="lines">0</span><small>줄</small></strong></div>
+        </div>
+      </section>
+
+      <section class="tray-case case" aria-labelledby="tray-title">
+        <div class="tray-heading">
+          <h2 class="section-title" id="tray-title"><svg class="icon" aria-hidden="true"><use href="#i-tray"/></svg>조각 트레이</h2>
+          <div class="turn-controls" role="group" aria-label="현재 조각 회전">
+            <button type="button" class="turn-button" data-turn="-1" aria-label="왼쪽으로 회전" aria-keyshortcuts="Q" title="왼쪽으로 회전 (Q)"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg>Q</button>
+            <button type="button" class="turn-button" data-turn="1" aria-label="오른쪽으로 회전" aria-keyshortcuts="E" title="오른쪽으로 회전 (E)"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg>E</button>
+          </div>
+        </div>
+        <div class="rack" id="rack" role="group" aria-label="조각 트레이" data-mode="sequence">
+          <button type="button" class="piece-card current-piece" id="current-piece" data-slot="0"><span class="piece-caption">현재 조각</span><span class="piece-space"></span></button>
+          <div class="piece-card next-piece" id="next-piece" role="img" aria-label="다음 조각"><span class="piece-caption">다음 조각</span><span class="piece-space"></span></div>
+          <button type="button" class="piece-card" data-slot="1" hidden><span class="piece-caption">2번 조각</span><span class="piece-space"></span></button>
+          <button type="button" class="piece-card" data-slot="2" hidden><span class="piece-caption">3번 조각</span><span class="piece-space"></span></button>
+        </div>
+        <div class="tray-hint" id="placement-hint">
+          <svg class="icon" aria-hidden="true"><use href="#i-cursor"/></svg>
+          <p class="wide-hint">빈칸을 눌러 현재 조각을 놓으세요.<br><span>우클릭하면 오른쪽으로 돌아요.</span></p>
+          <p class="compact-hint">빈칸을 누르거나 현재 조각을 끌어 놓으세요.</p>
+        </div>
+        <div class="tray-hint" id="choice-hint" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#i-cursor"/></svg>
+          <p>놓을 조각을 고르세요.<br><span>세 조각을 모두 놓으면 다시 채워져요.</span></p>
+        </div>
+        <div class="tray-hint" id="shield-hint" hidden>
+          <span class="shield-key" aria-hidden="true"></span>
+          <p>방패 칸은 줄 하나를 완성하면 일반 칸이 돼요.</p>
+        </div>
+      </section>
+
+      <div class="game-actions">
+        <button type="button" class="action-button undo-button" id="undo" aria-keyshortcuts="Control+Z Meta+Z" disabled><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg>되돌리기 <span class="undo-count" aria-hidden="true"></span></button>
+        <button type="button" class="action-button new-button" id="new-game"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg>새 게임</button>
+      </div>
+    </div>
+
+    <div class="keyboard-guide" aria-label="키보드 조작">
+      <svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>
+      <span id="choose-keys" hidden><kbd>1–3</kbd> 조각 선택</span>
+      <span><kbd>Q</kbd> 왼쪽 회전</span><span><kbd>E</kbd> / 우클릭 오른쪽 회전</span>
+      <span><kbd>방향키</kbd> 이동</span><span><kbd>Enter</kbd> 놓기</span><span><kbd>Esc</kbd> 배치 취소</span>
+    </div>
+  </main>
+
+  <div id="carry" class="carry" aria-hidden="true"></div>
+  <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <div class="dialog-shell">
+      <button id="close-dialog" class="close-button" type="button" aria-label="닫기"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <div class="dialog-mark" aria-hidden="true"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2056%2048%22%20fill%3D%22none%22%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14h15v17h-2v5H34v7H17V31H2V14h20z%22%20fill%3D%22%23263342%22%20stroke%3D%22%23263342%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M3%2015h16v15H3z%22%20fill%3D%22%23F68A71%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2015h16v15H19z%22%20fill%3D%22%23FA977D%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M19%2030h16v13H19z%22%20fill%3D%22%23DA6C57%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M22%202h16v14H22z%22%20fill%3D%22%2386D7BC%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M36%2017h16v15H36z%22%20fill%3D%22%23F9C75E%22%20stroke%3D%22%23263342%22%20stroke-width%3D%222.5%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M6%2018h8m9%200h7m-5-13h8m6%2015h8m-25%2013h7%22%20stroke%3D%22%23FFF4D9%22%20stroke-width%3D%222%22%2F%3E%0A%3C%2Fsvg%3E%0A" alt="" width="48" height="44"></div>
+      <h2 id="dialog-title"></h2>
+      <div class="dialog-view" id="help-view" hidden>
+        <p><strong>순차 배치</strong>에서는 현재 조각을 놓으면 미리 보인 다음 조각이 넘어와요. <strong>3개 중 선택</strong>에서는 세 조각을 원하는 순서로 놓으세요. 모두 쓰면 새 조각 세 개가 나와요. 모드마다 진행 상황과 최고 기록을 따로 저장해요.</p>
+        <p>조각은 주로 4칸과 5칸이에요. 5칸 조각은 일자·T자·L자·십자(+) 네 종류예요. 새로 뽑는 조각의 0.5%는 한 칸이에요.</p>
+        <p>조각의 가운데가 커서를 따라가다가 판 끝에 닿으면 가장자리를 따라 움직여요. 드래그 중에는 트레이로 돌아오거나 <kbd>Esc</kbd>를 눌러 취소할 수 있어요.</p>
+        <p>조각을 <kbd>Q</kbd>로 왼쪽, <kbd>E</kbd>나 마우스 우클릭으로 오른쪽으로 90도 돌릴 수 있어요. 터치할 때는 트레이의 회전 버튼을 쓰세요.</p>
+        <p><strong>가로나 세로로 8칸을 채우세요.</strong> 놓은 칸마다 1점, 완성한 줄마다 10점을 얻어요.</p>
+        <p><span class="shield-key" aria-hidden="true"></span> <strong>방패 칸</strong>은 한 번 줄을 완성하면 방패가 깨지고, 두 번째에 사라져요. 가로·세로 두 줄의 교차점에서는 한 번에 사라져요.</p>
+        <p>50점부터 새로 뽑는 조각 세 개 중 하나에 방패가 붙어요. 150점부터는 두 개, 300점부터는 모두 방패가 붙어요.</p>
+        <p>순차 배치에서는 현재 조각이, 3개 중 선택에서는 남은 조각이 모두 어느 방향으로도 들어가지 않으면 게임이 끝나요.</p>
+        <p><strong>되돌리기는 한 게임에 3회</strong> 쓸 수 있어요. 버튼이나 <kbd>Ctrl</kbd>+<kbd>Z</kbd>(Mac은 <kbd>⌘</kbd>+<kbd>Z</kbd>)를 누르면 마지막 배치를 되돌려요.</p>
+        <button class="action-button new-button dialog-primary" type="button" id="help-done">알겠어요</button>
+      </div>
+      <div class="dialog-view" id="restart-view" hidden>
+        <p>지금까지 놓은 조각과 점수가 초기화돼요. 최고 기록은 보관돼요.</p>
+        <div class="dialog-actions"><button class="action-button" type="button" id="keep-playing">계속하기</button><button class="action-button new-button" type="button" id="confirm-new">새 게임</button></div>
+      </div>
+      <div class="dialog-view" id="over-view" hidden>
+        <p id="over-message"></p>
+        <div class="end-score"><span>최종 점수</span><b id="end-score">0점</b></div>
+        <div class="dialog-actions"><button class="action-button" id="end-undo" type="button" aria-keyshortcuts="Control+Z Meta+Z" disabled>되돌리기 <span class="undo-count" aria-hidden="true"></span></button><button class="action-button new-button" type="button" id="end-new">새 게임</button></div>
+      </div>
+    </div>
+  </dialog>
+<script>
+(function (root) {
+  "use strict";
+
+  const SIZE = 8;
+  const LEGACY_SIZE = 10;
+  const UNDO_LIMIT = 3;
+  const SINGLE_CHANCE = 0.005;
+  const templates = {
+    longLine: { color: 1, rows: ["11111"] },
+    longTee:  { color: 12, rows: ["111", "010", "010"] },
+    longEll:  { color: 7, rows: ["10", "10", "10", "11"] },
+    cross:    { color: 6, rows: ["010", "111", "010"] },
+    single:   { color: 8, rows: ["1"] },
+    line:   { color: 9, rows: ["1111"] },
+    square: { color: 4, rows: ["11", "11"] },
+    tee:    { color: 2, rows: ["111", "010"] },
+    ell:    { color: 3, rows: ["10", "10", "11"] },
+    jay:    { color: 10, rows: ["01", "01", "11"] },
+    ess:    { color: 11, rows: ["011", "110"] },
+    zee:    { color: 5, rows: ["110", "011"] }
+  };
+  const COLORS = Object.keys(templates).length;
+  const retiredKinds = { pair: "longEll", three: "longLine", corner: "longEll", stairs: "longEll", cup: "longEll" };
+  const shieldScores = [50, 150, 300];
+
+  function makeShape(rows) {
+    const cells = [];
+    rows.forEach((row, y) => {
+      Array.from(row).forEach((value, x) => {
+        if (value === "1") cells.push([x, y]);
+      });
+    });
+    return { width: rows[0].length, height: rows.length, cells };
+  }
+
+  function turn(rows) {
+    return Array.from({ length: rows[0].length }, (_, x) =>
+      rows.map(row => row[x]).reverse().join("")
+    );
+  }
+
+  const shapes = {};
+  for (const [name, template] of Object.entries(templates)) {
+    const variants = [];
+    let rows = template.rows;
+    do {
+      variants.push(makeShape(rows));
+      rows = turn(rows);
+    } while (rows.join("/") !== template.rows.join("/"));
+    shapes[name] = variants;
+  }
+
+  const pool = Object.keys(templates).filter(kind => kind !== "single");
+  const pick = (items, random) => items[Math.floor(random() * items.length)];
+  const shapeOf = piece => shapes[piece.kind][piece.turn];
+
+  function makePiece(kind, turn = 0, shield = null) {
+    return { kind, turn, color: templates[kind].color, shield };
+  }
+
+  function rotateCell([x, y], shape, direction) {
+    return direction > 0 ? [shape.height - 1 - y, x] : [y, shape.width - 1 - x];
+  }
+
+  function rotatePiece(piece, direction) {
+    const count = shapes[piece.kind].length;
+    const rotated = makePiece(piece.kind, (piece.turn + count + direction) % count);
+    if (piece.shield != null) {
+      const shape = shapeOf(piece);
+      const [x, y] = rotateCell(shape.cells[piece.shield], shape, direction);
+      rotated.shield = shapeOf(rotated).cells.findIndex(([dx, dy]) => dx === x && dy === y);
+    }
+    return rotated;
+  }
+
+  function drawBatch(random, score) {
+    const kinds = [];
+    const batch = Array.from({ length: 3 }, () => {
+      const kind = pick(pool.filter(option => !kinds.includes(option)), random);
+      kinds.push(kind);
+      return makePiece(kind, Math.floor(random() * shapes[kind].length));
+    });
+    // One uniformly chosen slot in 1.5% of batches gives each slot a 0.5% chance.
+    if (random() < SINGLE_CHANCE * batch.length) batch[Math.floor(random() * batch.length)] = makePiece("single");
+    const unshielded = batch.slice();
+    for (const threshold of shieldScores) {
+      if (score < threshold) break;
+      const [piece] = unshielded.splice(Math.floor(random() * unshielded.length), 1);
+      piece.shield = Math.floor(random() * shapeOf(piece).cells.length);
+    }
+    return batch;
+  }
+
+  // Keeping the seed in each position makes undo and reload reproduce the same deal.
+  function deal(seed, score) {
+    function random() {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 2 ** 32;
+    }
+    const queue = drawBatch(random, score);
+    return { queue, seed };
+  }
+
+  function refillQueue(queue, seed, score) {
+    if (queue.length >= 2) return { queue, seed };
+    const batch = deal(seed, score);
+    return { queue: queue.concat(batch.queue), seed: batch.seed };
+  }
+
+  function nextPieces(state, score) {
+    if (state.mode === "sequence") return refillQueue(state.queue.slice(1), state.seed, score);
+    const queue = state.queue.slice();
+    queue[state.selected] = null;
+    return queue.some(Boolean) ? { queue, seed: state.seed } : deal(state.seed, score);
+  }
+
+  function openingBoard() {
+    const board = Array(SIZE * SIZE).fill(0);
+    const pieces = [
+      ["square", 0, 0, 6], ["ell", 2, 6, 5], ["zee", 1, 1, 3], ["tee", 2, 3, 4]
+    ];
+    for (const [kind, turn, x, y] of pieces) {
+      const piece = makePiece(kind, turn);
+      for (const [dx, dy] of shapeOf(piece).cells) board[(y + dy) * SIZE + x + dx] = piece.color;
+    }
+    return board;
+  }
+
+  function newGame(random = Math.random, mode = "sequence") {
+    return {
+      board: openingBoard(),
+      mode,
+      selected: mode === "choice" ? -1 : 0,
+      queue: [makePiece("longLine"), makePiece("ell"), makePiece("tee")],
+      seed: Math.floor(random() * 2 ** 32),
+      score: 0,
+      lines: 0,
+      moves: 0
+    };
+  }
+
+  function clampToBoard(shape, point) {
+    return {
+      x: Math.max(0, Math.min(SIZE - shape.width, point.x)),
+      y: Math.max(0, Math.min(SIZE - shape.height, point.y))
+    };
+  }
+
+  function fits(board, piece, x, y) {
+    if (!piece || !Number.isInteger(x) || !Number.isInteger(y)) return false;
+    const shape = shapeOf(piece);
+    if (x < 0 || y < 0 || x + shape.width > SIZE || y + shape.height > SIZE) return false;
+    return shape.cells.every(([dx, dy]) => board[(y + dy) * SIZE + x + dx] === 0);
+  }
+
+  function firstFit(board, piece) {
+    if (!piece) return null;
+    const shape = shapeOf(piece);
+    for (let y = 0; y <= SIZE - shape.height; y++) {
+      for (let x = 0; x <= SIZE - shape.width; x++) {
+        if (fits(board, piece, x, y)) return { x, y };
+      }
+    }
+    return null;
+  }
+
+  function anyMove(state) {
+    const candidates = state.mode === "choice" ? state.queue : [state.queue[0]];
+    return candidates.some(piece => piece && shapes[piece.kind].some((_, turn) =>
+      firstFit(state.board, { ...piece, turn }) !== null
+    ));
+  }
+
+  function inspectMove(board, piece, x, y) {
+    if (!fits(board, piece, x, y)) return null;
+    const filled = board.slice();
+    const placed = shapeOf(piece).cells.map(([dx, dy]) => (y + dy) * SIZE + x + dx);
+    // A negative palette number marks an intact shield. Its magnitude is the tile color.
+    placed.forEach((i, tile) => { filled[i] = tile === piece.shield ? -piece.color : piece.color; });
+    const hits = new Map();
+    let lineCount = 0;
+    function checkLine(start, stride) {
+      for (let n = 0; n < SIZE; n++) {
+        if (filled[start + n * stride] === 0) return;
+      }
+      lineCount++;
+      for (let n = 0; n < SIZE; n++) {
+        const i = start + n * stride;
+        hits.set(i, (hits.get(i) || 0) + 1);
+      }
+    }
+    // A row made entirely of shields may stay full after a hit. Only newly completed lines count.
+    for (const row of new Set(placed.map(i => Math.floor(i / SIZE)))) checkLine(row * SIZE, 1);
+    for (const col of new Set(placed.map(i => i % SIZE))) checkLine(col, SIZE);
+    const cleared = new Set();
+    const cracked = new Set();
+    for (const [i, count] of hits) {
+      if (filled[i] < 0 && count === 1) cracked.add(i);
+      else cleared.add(i);
+    }
+    return { filled, placed, cleared, cracked, lineCount };
+  }
+
+  function place(state, x, y) {
+    const move = inspectMove(state.board, state.queue[state.selected], x, y);
+    if (!move) return null;
+    const board = move.filled.slice();
+    for (const i of move.cleared) board[i] = 0;
+    for (const i of move.cracked) board[i] = Math.abs(board[i]);
+    const points = move.placed.length + move.lineCount * 10;
+    const score = state.score + points;
+    const next = {
+      board,
+      mode: state.mode,
+      selected: state.mode === "choice" ? -1 : 0,
+      ...nextPieces(state, score),
+      score,
+      lines: state.lines + move.lineCount,
+      moves: state.moves + 1
+    };
+    return { next, move, points };
+  }
+
+  function validPosition(state, size = SIZE) {
+    if (!state || !Array.isArray(state.board) || state.board.length !== size * size) return false;
+    if (!state.board.every(tile => Number.isInteger(tile) && Math.abs(tile) <= COLORS)) return false;
+    return [state.score, state.lines, state.moves].every(n => Number.isSafeInteger(n) && n >= 0);
+  }
+
+  function validQueue({ queue, seed, mode, selected }) {
+    if (!Number.isInteger(seed) || seed < 0 || seed >= 2 ** 32) return false;
+    if (!Array.isArray(queue)) return false;
+    if (mode === "choice") {
+      if (queue.length !== 3 || !queue.some(Boolean)) return false;
+      if (selected !== -1 && (!Number.isInteger(selected) || !queue[selected])) return false;
+    } else if (mode !== "sequence" || selected !== 0 || queue.length < 2 || queue.length > 4) return false;
+    return queue.every(piece => piece === null ? mode === "choice" :
+      piece && Object.hasOwn(shapes, piece.kind) &&
+      Number.isInteger(piece.turn) && piece.turn >= 0 && piece.turn < shapes[piece.kind].length &&
+      Number.isInteger(piece.color) && piece.color >= 1 && piece.color <= COLORS &&
+      (piece.shield == null || (Number.isInteger(piece.shield) && piece.shield >= 0 && piece.shield < shapeOf(piece).cells.length))
+    );
+  }
+
+  function validState(state) {
+    return validPosition(state) && validQueue(state);
+  }
+
+  function restoreState(saved, expectedMode) {
+    const oldSize = saved?.board?.length === LEGACY_SIZE ** 2 ? LEGACY_SIZE : SIZE;
+    if (!validPosition(saved, oldSize)) return null;
+    const { board, score, lines, moves } = saved;
+    let { queue, seed } = saved;
+    const mode = saved.mode ?? expectedMode ?? (Array.isArray(saved.tray) ? "choice" : "sequence");
+    if (expectedMode && mode !== expectedMode) return null;
+    const selected = saved.selected ?? (mode === "choice" ? -1 : 0);
+    if (queue === undefined && Array.isArray(saved.tray) && saved.tray.length === 3) {
+      queue = saved.tray;
+      seed = board.reduce((value, tile) => (Math.imul(value, 31) + tile) >>> 0, score + moves);
+      if (mode === "sequence") {
+        const remaining = queue.filter(piece => piece !== null);
+        if (!remaining.length) return null;
+        ({ queue, seed } = refillQueue(remaining, seed, score));
+      }
+    }
+    if (!Array.isArray(queue)) return null;
+    queue = queue.map(piece => piece && Object.hasOwn(retiredKinds, piece.kind) ? { ...piece, kind: retiredKinds[piece.kind] } : piece);
+    if (!validQueue({ queue, seed, mode, selected })) return null;
+    let restoredBoard = board.slice();
+    if (moves === 0) restoredBoard = openingBoard();
+    else if (oldSize !== SIZE) {
+      // Use the same bottom-centred crop for a game and all of its undo snapshots.
+      const left = Math.floor((oldSize - SIZE) / 2);
+      restoredBoard = [];
+      for (let y = oldSize - SIZE; y < oldSize; y++) restoredBoard.push(...board.slice(y * oldSize + left, y * oldSize + left + SIZE));
+    }
+    return {
+      board: restoredBoard,
+      queue: queue.map(piece => piece && makePiece(piece.kind, piece.turn, piece.shield)),
+      mode, selected, seed, score, lines, moves
+    };
+  }
+
+  class UndoHistory {
+    constructor(saved, moves = 0, mode) {
+      this.remaining = Number.isInteger(saved?.remaining)
+        ? Math.max(0, Math.min(UNDO_LIMIT, saved.remaining)) : UNDO_LIMIT;
+      this.snapshots = [];
+      if (!Array.isArray(saved?.snapshots)) return;
+      for (let i = saved.snapshots.length - 1; i >= 0 && this.snapshots.length < this.remaining; i--) {
+        const snapshot = restoreState(saved.snapshots[i], mode);
+        if (!snapshot || snapshot.moves !== moves - this.snapshots.length - 1) break;
+        this.snapshots.unshift(snapshot);
+      }
+    }
+
+    get available() {
+      return this.remaining > 0 && this.snapshots.length > 0;
+    }
+
+    record(state) {
+      if (this.remaining === 0) return;
+      this.snapshots.push(state);
+      if (this.snapshots.length > this.remaining) this.snapshots.shift();
+    }
+
+    undo() {
+      if (!this.available) return null;
+      this.remaining--;
+      return this.snapshots.pop();
+    }
+  }
+
+  const api = { SIZE, UNDO_LIMIT, UndoHistory, newGame, drawBatch, shapeOf, rotateCell, rotatePiece, clampToBoard, fits, firstFit, anyMove, inspectMove, place, validState, restoreState };
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.BlockDeck = api;
+})(globalThis);
+
+</script>
+<script>
+(() => {
+  "use strict";
+
+  const game = window.BlockDeck;
+  const size = game.SIZE;
+  const byId = id => document.getElementById(id);
+  const board = byId("board");
+  const rack = byId("rack");
+  const cards = Array.from(rack.querySelectorAll("button[data-slot]"));
+  const nextCard = byId("next-piece");
+  const modeButtons = document.querySelectorAll(".mode-switch button");
+  const turnButtons = document.querySelectorAll(".turn-button");
+  const carry = byId("carry");
+  const dialog = byId("dialog");
+  const undoButtons = [byId("undo"), byId("end-undo")];
+  const savePrefix = "block-deck.8x8.";
+  const names = { longLine: "다섯 칸 막대", longTee: "다섯 칸 T자", longEll: "다섯 칸 L자", cross: "십자", single: "한 칸 조각", line: "네 칸 막대", square: "정사각형", tee: "T자", ell: "L자", jay: "역 L자", ess: "S자", zee: "Z자" };
+  const modeNames = { sequence: "순차 배치", choice: "3개 중 선택" };
+  const colors = ["빈칸", "산호색", "민트색", "노란색", "파란색", "보라색", "아이보리색", "연두색", "분홍색", "청록색", "주황색", "남색", "진홍색"];
+
+  function readSave(key) {
+    try { return JSON.parse(localStorage.getItem(key)); }
+    catch { return null; }
+  }
+
+  const legacy = readSave("block-deck.game.v1") || {};
+  const legacyMode = Array.isArray(legacy.state?.tray) ? "choice" : "sequence";
+  const settings = readSave(savePrefix + "settings") || {};
+  const memorySaves = new Map();
+  function loadSession(mode) {
+    const saved = memorySaves.get(mode) ?? readSave(savePrefix + mode) ?? (mode === legacyMode ? legacy : {});
+    const restored = game.restoreState(saved.state, mode);
+    const state = restored || game.newGame(Math.random, mode);
+    const savedUndo = saved.undo ?? { snapshots: [saved.previous] };
+    const undoHistory = restored ? new game.UndoHistory(savedUndo, state.moves, mode) : new game.UndoHistory();
+    return { state, undoHistory, best: Math.max(Number.isSafeInteger(saved.best) ? saved.best : 0, state.score) };
+  }
+  let { state, undoHistory, best } = loadSession(Object.hasOwn(modeNames, settings.mode) ? settings.mode : legacyMode);
+  let sound = (settings.sound ?? legacy.sound) !== false;
+  let ended = !game.anyMove(state);
+  let cursor = null;
+  let boardPointer = null;
+  let drag = null;
+  let suppressCardClick = false;
+  let audioContext = null;
+  let statusTimer, effectsTimer, toastTimer, endTimer;
+  const cells = [];
+  const marked = new Set();
+  const activePiece = () => state.queue[state.selected];
+
+  function persist() {
+    const key = savePrefix + state.mode;
+    const otherBest = readSave(key)?.best;
+    if (Number.isSafeInteger(otherBest) && otherBest > best) {
+      best = otherBest;
+      byId("best").textContent = best.toLocaleString("ko-KR");
+    }
+    const data = { state, undo: undoHistory, best };
+    try { localStorage.setItem(key, JSON.stringify(data)); memorySaves.delete(state.mode); }
+    catch { memorySaves.set(state.mode, data); }
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(savePrefix + "settings", JSON.stringify({ mode: state.mode, sound })); }
+    catch { /* The current session also works without browser storage. */ }
+  }
+
+  const digitGlyphs = {
+    0: ["01110","11011","11011","11011","11011","11011","01110"],
+    1: ["00110","01110","00110","00110","00110","00110","01111"],
+    2: ["01110","11011","00011","00110","01100","11000","11111"],
+    3: ["11110","00011","00011","01110","00011","00011","11110"],
+    4: ["00011","00111","01111","11011","11111","00011","00011"],
+    5: ["11111","11000","11000","11110","00011","00011","11110"],
+    6: ["01110","11000","11000","11110","11011","11011","01110"],
+    7: ["11111","00011","00011","00110","00110","01100","01100"],
+    8: ["01110","11011","11011","01110","11011","11011","01110"],
+    9: ["01110","11011","11011","01111","00011","00011","01110"]
+  };
+
+  function drawScore(svg, text, lead) {
+    let x = 0;
+    const paths = [];
+    for (let letter = 0; letter < text.length; letter++) {
+      const char = text[letter];
+      let path = "";
+      digitGlyphs[char].forEach((row, y) => {
+        for (const run of row.matchAll(/1+/g)) {
+          const width = run[0].length;
+          path += "M" + (x + run.index) + " " + y + "h" + width + "v1h-" + width + "z";
+        }
+      });
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", path);
+      if (letter < lead) p.setAttribute("class", "score-leading");
+      paths.push(p);
+      x += 6;
+    }
+    svg.setAttribute("viewBox", "0 0 " + (x - 1) + " 7");
+    svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
+    svg.replaceChildren(...paths);
+  }
+
+  // The little cabinet is drawn on a 28-pixel grid, like the score and game pieces.
+  byId("mascot").innerHTML = [
+    '<path fill="#d3a24f" d="M5 25h18v1H5zM8 26h12v1H8z"/>',
+    '<path fill="#283443" d="M14 7V4h2v3zm0-7h3v1h1v3h-1v1h-3V4h-1V1h1z"/>',
+    '<path fill="#f4866e" d="M14 1h3v3h-3z"/><path fill="#ffe5ae" d="M14 1h1v1h-1z"/>',
+    '<path fill="#283443" d="M6 6h12v1h3v2h1v4h1v-2h2V8h2v1h1v4h-1v2h-2v2h-3v3h-1v2h-2v2h2v1h-5v-3h-5v2h1v1H6v-2h2v-2H6v-1H5v-2H3v1H1v-2H0v-3h1v-1h2v2h2V8h1z"/>',
+    '<path fill="#48a58d" d="M7 7h11v1h2v1h1v10h-1v2H8v-1H6V9h1zM22 14h2v-2h2v-2h1v3h-1v1h-2v2h-2z"/>',
+    '<path fill="#85d5b6" d="M7 7h10v1h2v10h-1v2H8v-1H6V9h1z"/><path fill="#c4efd1" d="M8 7h8v1H8zM7 8h1v2H7z"/>',
+    '<path fill="#d9f1ce" d="M7 10h11v7H7z"/><path fill="#283443" d="M7 9h11v1h1v6h-1v1H8v-1H7z"/>',
+    '<path fill="#3e5660" d="M8 10h9v1H8z"/><path fill="#e6f9d7" d="M9 11h2v2H9zm6 0h2v2h-2zm-4 3h1v1h2v-1h1v2h-4z"/>',
+    '<path fill="#283443" d="M8 18h3v1H8zm7 0h2v2h-2z"/><path fill="#f99172" d="M15 18h2v1h-2z"/>',
+    '<path fill="#91d8b8" d="M1 15h1v2H1zm7 8h2v1H8zm9 0h1v1h-1z"/>'
+  ].join("");
+
+  function buildBoard() {
+    board.parentElement.style.setProperty("--board-size", size);
+    board.setAttribute("aria-rowcount", size);
+    board.setAttribute("aria-colcount", size);
+    byId("board-size").textContent = size + " × " + size;
+    byId("board-size").setAttribute("aria-label", "가로 " + size + "칸, 세로 " + size + "칸");
+    for (let y = 0; y < size; y++) {
+      const row = document.createElement("div");
+      row.className = "board-row";
+      row.setAttribute("role", "row");
+      row.setAttribute("aria-rowindex", String(y + 1));
+      for (let x = 0; x < size; x++) {
+        const i = y * size + x;
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.id = "cell-" + i;
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-colindex", String(x + 1));
+        cells.push(cell);
+        row.append(cell);
+      }
+      board.append(row);
+    }
+  }
+
+  function pieceArt(piece) {
+    const shape = game.shapeOf(piece);
+    const art = document.createElement("span");
+    art.className = "piece-art";
+    art.setAttribute("aria-hidden", "true");
+    art.style.setProperty("--cols", shape.width);
+    art.style.setProperty("--rows", shape.height);
+    for (const [index, [x, y]] of shape.cells.entries()) {
+      const tile = document.createElement("span");
+      tile.className = "block";
+      tile.dataset.color = piece.color;
+      tile.classList.toggle("shielded", index === piece.shield);
+      tile.style.gridColumn = x + 1;
+      tile.style.gridRow = y + 1;
+      art.append(tile);
+    }
+    return art;
+  }
+
+  function announce(message) { byId("announcer").textContent = message; }
+
+  function syncStatus(message) {
+    clearTimeout(statusTimer);
+    byId("status-text").textContent = message || (ended ? "게임 종료" : "플레이 중");
+    byId("status-light").dataset.mode = ended ? "over" : "playing";
+    if (message) statusTimer = setTimeout(() => syncStatus(), 1800);
+  }
+
+  function inform(message) {
+    syncStatus(message);
+    announce(message);
+  }
+
+  function clearPreview() {
+    for (const i of marked) {
+      delete cells[i].dataset.ghost;
+      cells[i].classList.remove("conflict", "will-clear", "will-crack", "ghost-shield", "anchor");
+    }
+    marked.clear();
+    cursor = null;
+    board.removeAttribute("aria-activedescendant");
+  }
+
+  function paintPreview(point, keyboard = false) {
+    const piece = activePiece();
+    if (!point || ended || !piece) { clearPreview(); return null; }
+    const shape = game.shapeOf(piece);
+    point = game.clampToBoard(shape, point);
+    if (cursor && cursor.x === point.x && cursor.y === point.y && cursor.keyboard === keyboard) return cursor;
+    clearPreview();
+    cursor = { x: point.x, y: point.y, keyboard };
+    const move = game.inspectMove(state.board, piece, point.x, point.y);
+    for (const [tile, [dx, dy]] of shape.cells.entries()) {
+      const x = point.x + dx, y = point.y + dy;
+      const i = y * size + x;
+      marked.add(i);
+      if (tile === piece.shield) cells[i].classList.add("ghost-shield");
+      if (move) cells[i].dataset.ghost = piece.color;
+      else cells[i].classList.add("conflict");
+    }
+    if (move) {
+      for (const i of move.cleared) {
+        marked.add(i);
+        cells[i].classList.add("will-clear");
+      }
+      for (const i of move.cracked) {
+        marked.add(i);
+        cells[i].classList.add("will-crack");
+      }
+    }
+    if (keyboard) {
+      const [dx, dy] = shape.cells[0];
+      const i = (point.y + dy) * size + point.x + dx;
+      cells[i].classList.add("anchor");
+      board.setAttribute("aria-activedescendant", cells[i].id);
+    }
+    return cursor;
+  }
+
+  function cancelAim() {
+    boardPointer = null;
+    clearPreview();
+    announce("배치를 취소했어요.");
+  }
+
+  function keyboardStart() {
+    return game.firstFit(state.board, activePiece()) || { x: 0, y: 0 };
+  }
+
+  function renderPiece(card, piece) {
+    const space = card.querySelector(".piece-space");
+    const caption = card.querySelector(".piece-caption").textContent;
+    if (!piece) {
+      space.replaceChildren();
+      card.setAttribute("aria-label", caption + ", 배치 완료");
+      return;
+    }
+    space.replaceChildren(pieceArt(piece));
+    const shape = game.shapeOf(piece);
+    let label = caption + ", " + colors[piece.color] + " " + names[piece.kind]
+      + ", " + shape.cells.length + "칸, 가로 " + shape.width + "칸 세로 " + shape.height + "칸";
+    if (piece.shield != null) {
+      const [x, y] = shape.cells[piece.shield];
+      label += ", 방패 칸 " + (y + 1) + "행 " + (x + 1) + "열";
+    }
+    card.setAttribute("aria-label", label);
+  }
+
+  function renderRack() {
+    const choice = state.mode === "choice";
+    rack.dataset.mode = state.mode;
+    nextCard.hidden = choice;
+    if (!choice) renderPiece(nextCard, state.queue[1]);
+    cards.forEach((card, i) => {
+      card.hidden = !choice && i > 0;
+      if (card.hidden) return;
+      const piece = state.queue[i];
+      const selected = i === state.selected;
+      card.disabled = ended || !piece;
+      card.classList.toggle("current-piece", selected);
+      card.classList.toggle("spent", !piece);
+      if (choice) card.setAttribute("aria-pressed", String(selected));
+      else card.removeAttribute("aria-pressed");
+      card.querySelector(".piece-caption").textContent = choice ? (i + 1) + "번 조각" : "현재 조각";
+      renderPiece(card, piece);
+    });
+    turnButtons.forEach(button => { button.disabled = ended || !activePiece(); });
+  }
+
+  function selectSlot(slot) {
+    if (ended || !state.queue[slot] || (state.mode === "sequence" && slot !== 0)) return false;
+    if (state.selected !== slot) {
+      clearPreview();
+      boardPointer = null;
+      state = { ...state, selected: slot };
+      renderRack();
+      persist();
+    }
+    return true;
+  }
+
+  function rotateCurrent(direction) {
+    const piece = activePiece();
+    if (ended || !piece) return;
+    if (drag && !drag.moving) suppressCardClick = true;
+    const rotated = game.rotatePiece(piece, direction);
+    if (rotated.turn === piece.turn && rotated.shield === piece.shield) { inform("돌려도 같은 모양이에요."); return; }
+
+    const aim = cursor;
+    const shape = game.shapeOf(piece);
+    clearPreview();
+    const queue = state.queue.slice();
+    queue[state.selected] = rotated;
+    state = { ...state, queue };
+    renderPiece(cards[state.selected], rotated);
+
+    if (drag) {
+      // The mouse rotates around the center; a touch grip rotates with its tile.
+      drag.anchor = game.rotateCell(drag.anchor, shape, direction);
+      if (drag.moving) {
+        carry.replaceChildren(pieceArt(rotated));
+        dragTarget(drag.pointer);
+      }
+    } else if (aim && !aim.keyboard && boardPointer) {
+      previewAtPointer(boardPointer);
+    } else if (aim) {
+      const [oldX, oldY] = shape.cells[0];
+      const [newX, newY] = game.shapeOf(rotated).cells[0];
+      paintPreview({ x: aim.x + oldX - newX, y: aim.y + oldY - newY }, aim.keyboard);
+    }
+    announce(direction > 0 ? "오른쪽으로 90도 회전했어요." : "왼쪽으로 90도 회전했어요.");
+    persist();
+  }
+
+  function render() {
+    clearPreview();
+    state.board.forEach((tile, i) => {
+      const color = Math.abs(tile);
+      cells[i].dataset.color = color;
+      cells[i].classList.toggle("shielded", tile < 0);
+      cells[i].setAttribute("aria-label", (Math.floor(i / size) + 1) + "행 " + (i % size + 1) + "열, " + colors[color] + (tile < 0 ? " 방패 칸" : ""));
+    });
+    const choice = state.mode === "choice";
+    renderRack();
+    modeButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
+    byId("choose-keys").hidden = !choice;
+    byId("board-help").textContent = (choice ? "숫자 1, 2, 3으로 조각을 고르세요. " : "현재 조각은 바로 놓을 수 있어요. ") + "Q와 E로 회전하고, 방향키로 옮기고 Enter로 놓으세요.";
+    byId("over-message").textContent = choice ? "남은 조각을 돌려도 놓을 자리가 없어요." : "현재 조각을 돌려도 놓을 자리가 없어요.";
+    const visiblePieces = choice ? state.queue : state.queue.slice(0, 2);
+    const hasShield = visiblePieces.some(p => p?.shield != null) || state.board.some(tile => tile < 0);
+    byId("placement-hint").hidden = hasShield || choice;
+    byId("choice-hint").hidden = hasShield || !choice;
+    byId("shield-hint").hidden = !hasShield;
+    const digits = String(state.score);
+    drawScore(byId("score-digits"), digits.padStart(5, "0"), Math.max(0, 5 - digits.length));
+    byId("score-value").textContent = state.score + "점";
+    byId("best").textContent = best.toLocaleString("ko-KR");
+    byId("lines").textContent = state.lines.toLocaleString("ko-KR");
+    for (const button of undoButtons) {
+      button.disabled = !undoHistory.available;
+      button.querySelector(".undo-count").textContent = undoHistory.remaining + "/" + game.UNDO_LIMIT;
+      button.setAttribute("aria-label", "되돌리기, " + undoHistory.remaining + "회 남음");
+    }
+    syncStatus();
+  }
+
+  function syncSound() {
+    byId("sound-icon").setAttribute("href", sound ? "#i-sound" : "#i-muted");
+    byId("sound").setAttribute("aria-pressed", String(sound));
+    byId("sound").title = sound ? "효과음 끄기" : "효과음 켜기";
+  }
+
+  function chime(frequencies) {
+    if (!sound) return;
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      audioContext ||= new Audio();
+      if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+      const t = audioContext.currentTime;
+      frequencies.forEach((frequency, i) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        const start = t + i * .065;
+        osc.type = "triangle";
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(.001, start);
+        gain.gain.exponentialRampToValueAtTime(.045, start + .012);
+        gain.gain.exponentialRampToValueAtTime(.001, start + .13);
+        osc.connect(gain).connect(audioContext.destination);
+        osc.start(start);
+        osc.stop(start + .14);
+        osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+      });
+    } catch { /* Audio is optional on devices without an active output. */ }
+  }
+
+  function stopEffects() {
+    clearTimeout(effectsTimer);
+    clearTimeout(toastTimer);
+    clearTimeout(endTimer);
+    byId("effects").replaceChildren();
+    byId("clear-toast").classList.remove("show");
+    byId("mascot").classList.remove("happy");
+    cells.forEach(cell => cell.classList.remove("placed-tile"));
+  }
+
+  function animateMove(result) {
+    const { move, points } = result;
+    for (const i of move.placed) {
+      if (!move.cleared.has(i) && !move.cracked.has(i)) cells[i].classList.add("placed-tile");
+    }
+    if (move.lineCount) {
+      const fragments = document.createDocumentFragment();
+      for (const i of [...move.cleared, ...move.cracked]) {
+        const tile = document.createElement("span");
+        tile.className = "effect-tile";
+        tile.classList.toggle("shielded", move.filled[i] < 0);
+        tile.classList.toggle("shield-break", move.cracked.has(i));
+        tile.style.gridRow = Math.floor(i / size) + 1;
+        tile.style.gridColumn = i % size + 1;
+        tile.dataset.color = Math.abs(move.filled[i]);
+        fragments.append(tile);
+      }
+      byId("effects").append(fragments);
+      byId("toast-title").textContent = move.lineCount + "줄 클리어!";
+      byId("toast-points").textContent = "+" + points;
+      byId("clear-toast").classList.add("show");
+      byId("mascot").classList.add("happy");
+      toastTimer = setTimeout(() => {
+        byId("clear-toast").classList.remove("show");
+        byId("mascot").classList.remove("happy");
+      }, 1250);
+    }
+    effectsTimer = setTimeout(() => {
+      byId("effects").replaceChildren();
+      cells.forEach(cell => cell.classList.remove("placed-tile"));
+    }, 470);
+  }
+
+  function placeAt(point) {
+    if (ended || !point || !activePiece()) return false;
+    const result = game.place(state, point.x, point.y);
+    if (!result) { inform("조각이 들어갈 빈칸을 골라 주세요."); return false; }
+    stopEffects();
+    undoHistory.record(state);
+    state = result.next;
+    best = Math.max(best, state.score);
+    ended = !game.anyMove(state);
+    const keyboard = cursor?.keyboard;
+    render();
+    if (!ended && keyboard) paintPreview(point, true);
+    else if (!ended && boardPointer) previewAtPointer(boardPointer);
+    animateMove(result);
+    chime(result.move.lineCount ? [523.25, 659.25, 783.99] : [329.63]);
+    persist();
+    const prefix = result.move.lineCount ? result.move.lineCount + "줄을 완성했어요." : "조각을 놓았어요.";
+    const shieldMessage = result.move.cracked.size ? "방패 " + result.move.cracked.size + "개가 깨졌어요." : "";
+    if (shieldMessage && !ended) syncStatus(shieldMessage);
+    const upcoming = state.mode === "choice" ? "놓을 조각을 고르세요." : cards[0].getAttribute("aria-label") + ". " + nextCard.getAttribute("aria-label") + ".";
+    announce([prefix, shieldMessage, state.score + "점.", !ended && upcoming].filter(Boolean).join(" "));
+    if (ended) endTimer = setTimeout(() => showDialog("over"), result.move.lineCount ? 850 : 260);
+    return true;
+  }
+
+  function shapeCenter(shape) {
+    return [(shape.width - 1) / 2, (shape.height - 1) / 2];
+  }
+
+  function pointerPlacement({ clientX, clientY }, [anchorX, anchorY], liftTouch = false) {
+    const rect = board.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(board).columnGap) || 0;
+    const step = (rect.width + gap) / size;
+    const unit = step - gap;
+    const y = clientY - (liftTouch ? Math.min(27, step * .72) : 0);
+    const left = clientX - anchorX * step - unit / 2;
+    const top = y - anchorY * step - unit / 2;
+    // Touch can enter with either the fingertip or its lifted target over the board.
+    const overBoard = clientX >= rect.left && clientX < rect.right && clientY >= rect.top && y < rect.bottom;
+    const point = { x: Math.round((left - rect.left) / step), y: Math.round((top - rect.top) / step) };
+    return { point, overBoard, left, top, unit };
+  }
+
+  function previewAtPointer({ clientX, clientY, pointerType }) {
+    if (!activePiece()) return null;
+    const pointer = { clientX, clientY, pointerType };
+    boardPointer = pointerType === "touch" ? null : pointer;
+    const shape = game.shapeOf(activePiece());
+    const anchor = pointerType === "touch" ? shape.cells[0] : shapeCenter(shape);
+    const { point } = pointerPlacement(pointer, anchor);
+    return paintPreview(point);
+  }
+
+  function dragAnchor(button, event, piece) {
+    const shape = game.shapeOf(piece);
+    if (event.pointerType !== "touch") return shapeCenter(shape);
+    const rect = button.querySelector(".piece-art").getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX >= rect.right || event.clientY < rect.top || event.clientY >= rect.bottom) return shape.cells[0];
+    const x = (event.clientX - rect.left) * shape.width / rect.width - .5;
+    const y = (event.clientY - rect.top) * shape.height / rect.height - .5;
+    const distance = ([dx, dy]) => (dx - x) ** 2 + (dy - y) ** 2;
+    return shape.cells.reduce((a, b) => distance(a) <= distance(b) ? a : b);
+  }
+
+  function dragTarget(event) {
+    drag.pointer = event;
+    const { point, overBoard, left, top, unit } = pointerPlacement(event, drag.anchor, event.pointerType === "touch");
+    drag.enteredBoard ||= overBoard;
+    document.body.classList.toggle("drag-over-board", overBoard && event.pointerType !== "touch");
+    const target = paintPreview(drag.enteredBoard ? point : null);
+    carry.style.setProperty("--unit", unit + "px");
+    carry.style.transform = "translate(" + left + "px," + top + "px)";
+    carry.style.display = drag.enteredBoard ? "none" : "block";
+    return target;
+  }
+
+  function stopDrag() {
+    if (!drag) return;
+    const { id, button } = drag;
+    drag = null;
+    if (button.hasPointerCapture(id)) button.releasePointerCapture(id);
+    button.classList.remove("is-dragging");
+    document.body.classList.remove("dragging", "drag-over-board");
+    carry.replaceChildren();
+    carry.style.display = "none";
+  }
+
+  rack.addEventListener("pointerdown", event => {
+    if (!event.isPrimary || event.button !== 0 || drag || ended) return;
+    const button = event.target.closest("button[data-slot]");
+    if (!button || !selectSlot(Number(button.dataset.slot))) return;
+    boardPointer = null;
+    clearPreview();
+    suppressCardClick = false;
+    drag = {
+      id: event.pointerId, x: event.clientX, y: event.clientY, button,
+      anchor: dragAnchor(button, event, activePiece()), moving: false, enteredBoard: false
+    };
+    button.setPointerCapture(event.pointerId);
+  });
+  rack.addEventListener("pointermove", event => {
+    if (!drag || drag.id !== event.pointerId) return;
+    if (!drag.moving) {
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+      drag.moving = true;
+      carry.replaceChildren(pieceArt(activePiece()));
+      drag.button.classList.add("is-dragging");
+      document.body.classList.add("dragging");
+    }
+    dragTarget(event);
+  });
+  rack.addEventListener("pointerup", event => {
+    if (!drag || drag.id !== event.pointerId) return;
+    if (!drag.moving) { stopDrag(); return; }
+    const point = dragTarget(event);
+    const backInTray = rack.contains(document.elementFromPoint(event.clientX, event.clientY));
+    suppressCardClick = true;
+    stopDrag();
+    if (backInTray) { cancelAim(); return; }
+    if (point) {
+      if (event.pointerType !== "touch") boardPointer = { clientX: event.clientX, clientY: event.clientY, pointerType: event.pointerType };
+      placeAt(point);
+    } else inform("보드의 빈칸에 놓으세요.");
+  });
+  function cancelDrag(event) {
+    if (drag && drag.id === event.pointerId) { stopDrag(); cancelAim(); }
+  }
+  rack.addEventListener("pointercancel", cancelDrag);
+  rack.addEventListener("lostpointercapture", cancelDrag);
+  rack.addEventListener("click", event => {
+    if (suppressCardClick && event.detail !== 0) { suppressCardClick = false; return; }
+    const button = event.target.closest("button[data-slot]");
+    if (!button || !selectSlot(Number(button.dataset.slot))) return;
+    boardPointer = null;
+    board.focus({ preventScroll: true });
+    paintPreview(keyboardStart(), true);
+  });
+
+  document.addEventListener("contextmenu", event => {
+    if (ended || dialog.open || event.button !== 2 || event.pointerType === "touch") return;
+    const button = event.target.closest("#rack button[data-slot]");
+    const onBoard = board.contains(event.target);
+    if (!drag && !onBoard && !button) return;
+    event.preventDefault();
+    if (!drag && button && !selectSlot(Number(button.dataset.slot))) return;
+    if (!drag && onBoard) previewAtPointer(event);
+    rotateCurrent(1);
+  });
+
+  function followBoardPointer(event) {
+    if (ended || drag || event.pointerType === "touch" || dialog.open) return;
+    if (board.contains(event.target) || (boardPointer && cursor && !cursor.keyboard)) previewAtPointer(event);
+    else boardPointer = null;
+  }
+  board.addEventListener("pointerenter", followBoardPointer);
+  document.addEventListener("pointermove", followBoardPointer);
+  board.addEventListener("pointerleave", event => {
+    if (ended || drag || event.pointerType === "touch" || dialog.open) return;
+    if (boardPointer && cursor && !cursor.keyboard) previewAtPointer(event);
+    else boardPointer = null;
+  });
+  board.addEventListener("click", event => {
+    if (ended || drag) return;
+    if (!activePiece()) { inform("트레이에서 놓을 조각을 골라 주세요."); return; }
+    const point = previewAtPointer(event);
+    if (point) placeAt(point);
+  });
+  board.addEventListener("focus", () => {
+    if (!ended && !cursor && board.matches(":focus-visible")) paintPreview(keyboardStart(), true);
+  });
+
+  function undo() {
+    const previous = undoHistory.undo();
+    if (!previous) return;
+    stopDrag();
+    stopEffects();
+    if (dialog.open) dialog.close();
+    state = previous;
+    boardPointer = null;
+    ended = !game.anyMove(state);
+    render();
+    persist();
+    inform("마지막 배치를 되돌렸어요. 남은 횟수 " + undoHistory.remaining + "회");
+  }
+
+  function restart() {
+    stopDrag();
+    stopEffects();
+    if (dialog.open) dialog.close();
+    state = game.newGame(Math.random, state.mode);
+    undoHistory = new game.UndoHistory();
+    boardPointer = null;
+    ended = false;
+    render();
+    persist();
+    inform("새 게임을 시작했어요.");
+  }
+
+  function switchMode(mode) {
+    if (mode === state.mode) return;
+    stopDrag();
+    stopEffects();
+    boardPointer = null;
+    persist();
+    ({ state, undoHistory, best } = loadSession(mode));
+    ended = !game.anyMove(state);
+    render();
+    saveSettings();
+    if (ended) showDialog("over");
+    else inform(modeNames[mode] + " 모드");
+  }
+
+  const dialogTitles = { help: "게임 방법", restart: "새 게임을 시작할까요?", over: "게임 종료" };
+  function showDialog(view) {
+    stopDrag();
+    boardPointer = null;
+    clearPreview();
+    for (const name of Object.keys(dialogTitles)) byId(name + "-view").hidden = name !== view;
+    byId("dialog-title").textContent = dialogTitles[view];
+    byId("end-score").textContent = state.score.toLocaleString("ko-KR") + "점";
+    if (!dialog.open) dialog.showModal();
+    const focusId = view === "help" ? "help-done" : view === "restart" ? "keep-playing" : "end-new";
+    byId(focusId).focus({ preventScroll: true });
+  }
+
+  byId("help").addEventListener("click", () => showDialog("help"));
+  modeButtons.forEach(button => button.addEventListener("click", () => switchMode(button.dataset.mode)));
+  turnButtons.forEach(button => {
+    button.addEventListener("click", () => rotateCurrent(Number(button.dataset.turn)));
+  });
+  byId("new-game").addEventListener("click", () => state.moves && !ended ? showDialog("restart") : restart());
+  byId("confirm-new").addEventListener("click", restart);
+  byId("end-new").addEventListener("click", restart);
+  undoButtons.forEach(button => button.addEventListener("click", undo));
+  for (const id of ["close-dialog", "help-done", "keep-playing"]) byId(id).addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => {
+    if (event.target !== dialog) return;
+    const r = dialog.getBoundingClientRect();
+    if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
+  });
+  byId("sound").addEventListener("click", () => {
+    sound = !sound;
+    syncSound();
+    saveSettings();
+    if (sound) chime([493.88]);
+  });
+  window.addEventListener("blur", () => { boardPointer = null; stopDrag(); clearPreview(); });
+
+  document.addEventListener("keydown", event => {
+    if (event.altKey || (dialog.open && byId("over-view").hidden)) return;
+    if (event.ctrlKey || event.metaKey) {
+      if (!drag && !event.isComposing && event.key.toLowerCase() === "z" && !event.shiftKey && undoHistory.available) {
+        event.preventDefault();
+        if (!event.repeat) undo();
+      }
+      return;
+    }
+    if (ended || dialog.open) return;
+    const key = event.key.toLowerCase();
+    const left = event.code === "KeyQ" || key === "q";
+    const right = event.code === "KeyE" || key === "e";
+    if (left || right) {
+      event.preventDefault();
+      if (!event.repeat) rotateCurrent(left ? -1 : 1);
+      return;
+    }
+    if (event.isComposing) return;
+    if (event.key === "Escape" && (drag || cursor)) {
+      if (drag) { suppressCardClick = true; stopDrag(); }
+      cancelAim();
+      return;
+    }
+    if (drag) return;
+    if (state.mode === "choice" && /^[1-3]$/.test(event.key)) {
+      event.preventDefault();
+      if (selectSlot(Number(event.key) - 1)) {
+        board.focus({ preventScroll: true });
+        paintPreview(keyboardStart(), true);
+        announce(cards[state.selected].getAttribute("aria-label") + " 선택.");
+      }
+      return;
+    }
+    if (!activePiece()) return;
+    const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (arrows[event.key]) {
+      event.preventDefault();
+      boardPointer = null;
+      const from = cursor || keyboardStart();
+      const [dx, dy] = arrows[event.key];
+      board.focus({ preventScroll: true });
+      paintPreview({ x: from.x + dx, y: from.y + dy }, true);
+    } else if ((event.key === "Enter" || event.key === " ") && (document.activeElement === board || document.activeElement === document.body)) {
+      event.preventDefault();
+      if (!event.repeat) {
+        board.focus({ preventScroll: true });
+        placeAt(cursor || paintPreview(keyboardStart(), true));
+      }
+    }
+  });
+
+  buildBoard();
+  render();
+  syncSound();
+  if (ended) showDialog("over");
+})();
+
+</script>
+</body>
+</html>
