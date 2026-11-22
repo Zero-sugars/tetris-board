@@ -412,6 +412,7 @@ dialog::backdrop { background: #202b3bbb; }
 </style>
   
   
+  
 </head>
 <body>
   <svg class="symbol-bank" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -544,8 +545,9 @@ dialog::backdrop { background: #202b3bbb; }
       <div class="dialog-view" id="help-view" hidden>
         <p><strong>순차 배치</strong>에서는 현재 조각을 놓으면 미리 보인 다음 조각이 넘어와요. <strong>3개 중 선택</strong>에서는 세 조각을 원하는 순서로 놓으세요. 모두 쓰면 새 조각 세 개가 나와요. 모드마다 진행 상황과 최고 기록을 따로 저장해요.</p>
         <p>조각 순서는 한국 시간 자정에 바뀌어요. 같은 날짜에 시작하면 두 모드와 두 시작판에서 같은 조각이 같은 방향으로 나와요. 회차는 이 브라우저에서 같은 날짜·모드로 게임을 시작할 때마다 올라가요. 이어하기와 되돌리기는 같은 회차예요.</p>
+        <p><strong>오늘의 1,000점 도전</strong> · 새 게임을 시작하면 어느 날짜든 두 시작판과 두 모드 모두에 되돌리기 없이 1,000점에 도달하는 배치가 있어요. 그 뒤에도 최고 기록에 도전할 수 있어요.</p>
         <p>새 게임에서 빈 판이나 영구 블록 판을 고르세요. 영구 블록 판의 회색 8칸은 줄 완성에 포함되고, 줄을 지워도 남아요. 색깔 블록은 줄을 완성하면 사라져요.</p>
-        <p>조각은 주로 4칸과 5칸이에요. 5칸 조각은 일자·T자·L자·십자(+) 네 종류예요. 5칸 L자는 가로와 세로가 각각 3칸이에요. 새로 뽑는 조각의 0.5%는 한 칸이에요.</p>
+        <p>조각은 주로 4칸과 5칸이에요. 5칸 조각은 일자·T자·L자·십자(+) 네 종류예요. 5칸 L자는 가로와 세로가 각각 3칸이에요. 새로 뽑는 조각의 약 0.5%는 한 칸이에요.</p>
         <p>조각의 가운데가 커서를 따라가다가 판 끝에 닿으면 가장자리를 따라 움직여요. 드래그 중에는 트레이로 돌아오거나 <kbd>Esc</kbd>를 눌러 취소할 수 있어요.</p>
         <p>조각을 <kbd>Q</kbd>로 왼쪽, <kbd>E</kbd>나 마우스 우클릭으로 오른쪽으로 90도 돌릴 수 있어요. 터치할 때는 트레이의 회전 버튼을 쓰세요.</p>
         <p><strong>가로나 세로로 8칸을 채우세요.</strong> 놓은 칸마다 1점, 완성한 줄마다 10점을 얻어요.</p>
@@ -582,6 +584,80 @@ dialog::backdrop { background: #202b3bbb; }
 (function (root) {
   "use strict";
 
+  // Each mask describes which orders reach the same checkpoint on all four certified paths.
+  // The offline replay tests also compare the next shields, including the sequence-mode preview.
+  const catalog = [
+    [31012303, "_TDDDFHTTBDBFDBBBDBBBBDBFBFDFTFDD"],
+    [109096410, "_BBFDTDBFBBFFBDDTTBB_FDTBBBBF_HBN"],
+    [130677859, "_FTNFBDBBNBTH_NBBHFTFF_FT__BH9BFH"],
+    [245637628, "_BFFBBFBBBFBDBFBFDXBD_FBFHBTDT__B"],
+    [395518606, "__TDF__BBD_TB9_BFHBBBBBBBFBBTD_F_"],
+    [557974056, "_XBH_FTTDFFHBBBBBBHBBFBBFDBTBFTB_"],
+    [563072127, "_FD__B__BXNF__FBTFTBTHDDBFNBBB___"],
+    [578366340, "_TDB_HB_BFNHFHBBBDBBHTBBFDBBBFBHDD"],
+    [651352376, "_DBFB_FTBBDBBBF3DB_DFBTTBBFDTFBXH"],
+    [791037212, "FBXHDDFBBNBFBT_BDBTBBFFB_DBBFHvTTT"],
+    [862068795, "_BB_FFH_DDFTDFTTNDDBD_TFBDBBF_H__"],
+    [1006851702, "_FFBFDBTFB_FFFBFN_DHT_FT_FDBBH__H"],
+    [1111615329, "_BFFBBF_BNBB_FBNFBvDBHBFBBBFTH_FT"],
+    [1361161863, "FBH__BBHFNFDFD_FBDTFDFFTTTR_T__H_"],
+    [1557349357, "_FDB_BDDBDtHFBFBBFNBBDBTDBHBBBNTT"],
+    [1593459731, "_DD_BHDDFDFB__T_FBBBBB_BDDFBDDHFF"],
+    [1595414184, "_B_FB__NNtD7BTFBDBBDBFDFFFBDBHBBN"],
+    [1649962389, "_NFtDFDFD_FTFFDDFTF_DNFHF_TTBN_TB"],
+    [2095696417, "__BNNTT_DFTBNFBDFTBF_BDDHHFTTT_BB"],
+    [2271491627, "F7_FF_FFFTBFBTBBTBBDBBNDBBBFBBF_N"],
+    [2444908507, "F_DFF_DFFNHFFTFBBHBBBDDNFBBBB_DH"],
+    [2574397201, "_BDDBDDBBHFHBD_XFDDFFBBFDDHNFDDBF"],
+    [2684258899, "_D_BBBBDHNTFNB_D_FH_BFTFFFTDBT_T"],
+    [3015033158, "__BHBNDDBDHBBBBBDBBFHTHDBBFFBBNF_"],
+    [3241043790, "_FB_BFBDTBBFBBH_NNB__DBTFDBFDFB_H"],
+    [3250474644, "_FF_HFFDBFBBTFFHBBBB_BBFHTBBFTNTN"],
+    [3289304759, "_BTHBFBBT3DBTFBTHHFDFBBBTBB_B_B_T"],
+    [3365434413, "__BTBFFTDFTF_FFTDTFHTTFFHHF_TH___"],
+    [3513360938, "_F_FDBFHB_BHBBBDFBBTBFBNBDBBT_BN_"],
+    [3563576360, "FBF_FBBBHBBBFTBFBBBHBBBFDBBFBFHT_"],
+    [3744469641, "_BTBBFBFTTDFFDFBFBFBBBDBBBBBB_XB_"],
+    [3814312059, "__FBBBBBBTBBBTDBB__BFTFFHFBFDN__F"]
+  ];
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const orders = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+
+  function mix(value) {
+    value = Math.imul(value ^ (value >>> 16), 0x85ebca6b);
+    value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35);
+    return (value ^ (value >>> 16)) >>> 0;
+  }
+
+  function series(day) {
+    let key = 2166136261;
+    for (const ch of day) key = Math.imul(key ^ ch.charCodeAt(0), 16777619);
+    key = mix(key);
+    const [seed, masks] = catalog[key % catalog.length];
+    return { key, seed, masks };
+  }
+
+  function variation(series, batch) {
+    const bits = mix(series.key ^ Math.imul(batch + 1, 0x9e3779b1));
+    const mask = alphabet.indexOf(series.masks[batch]);
+    const allowed = orders.filter((_, i) => (mask & (1 << i)) !== 0);
+    return {
+      order: allowed[(bits >>> 6) % allowed.length],
+      turns: [bits & 3, (bits >>> 2) & 3, (bits >>> 4) & 3]
+    };
+  }
+
+  const api = { catalog, orders, alphabet, mix, series, variation };
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.BlockDeckDeals = api;
+})(globalThis);
+
+</script>
+<script>
+(function (root) {
+  "use strict";
+
+  const daily = typeof module === "object" && module.exports ? require("./daily-deals.js") : root.BlockDeckDeals;
   const SIZE = 8;
   const LEGACY_SIZE = 10;
   const UNDO_LIMIT = 3;
@@ -698,17 +774,39 @@ dialog::backdrop { background: #202b3bbb; }
     return { queue, seed };
   }
 
-  function refillQueue(queue, seed, score) {
-    if (queue.length >= 2) return { queue, seed };
-    const batch = deal(seed, score);
+  function dailyDeal(day, index, seed, score) {
+    const series = daily.series(day);
+    if (index >= series.masks.length) {
+      if (index === series.masks.length) seed = daily.mix(seed ^ series.key);
+      return deal(seed, score);
+    }
+    const batch = deal(index === 0 ? series.seed : seed, score, index === 0);
+    const { order, turns } = daily.variation(series, index);
+    const queue = order.map(slot => {
+      let piece = batch.queue[slot];
+      for (let r = 0; r < turns[slot]; r++) piece = rotatePiece(piece, 1);
+      return piece;
+    });
+    return { queue, seed: batch.seed };
+  }
+
+  function nextBatch(state, score) {
+    if (state.dealVersion !== 2) return deal(state.seed, score);
+    const dealt = state.moves + state.queue.filter(Boolean).length;
+    return dailyDeal(state.day, Math.floor(dealt / 3), state.seed, score);
+  }
+
+  function refillQueue(queue, state, score) {
+    if (queue.length >= 2) return { queue, seed: state.seed };
+    const batch = nextBatch(state, score);
     return { queue: queue.concat(batch.queue), seed: batch.seed };
   }
 
   function nextPieces(state, score) {
-    if (state.mode === "sequence") return refillQueue(state.queue.slice(1), state.seed, score);
+    if (state.mode === "sequence") return refillQueue(state.queue.slice(1), state, score);
     const queue = state.queue.slice();
     queue[state.selected] = null;
-    return queue.some(Boolean) ? { queue, seed: state.seed } : deal(state.seed, score);
+    return queue.some(Boolean) ? { queue, seed: state.seed } : nextBatch(state, score);
   }
 
   function openingBoard(layout = "empty") {
@@ -719,20 +817,15 @@ dialog::backdrop { background: #202b3bbb; }
     return new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   }
 
-  function seedFromDate(day) {
-    let hash = 2166136261;
-    for (const digit of day) hash = Math.imul(hash ^ digit.charCodeAt(0), 16777619);
-    return hash >>> 0;
-  }
-
   function newGame(day = gameDate(), mode = "sequence", layout = "empty") {
     return {
       board: openingBoard(layout),
       mode,
       layout,
       day,
+      dealVersion: 2,
       selected: mode === "choice" ? -1 : 0,
-      ...deal(seedFromDate(day), 0, true),
+      ...dailyDeal(day, 0, 0, 0),
       score: 0,
       lines: 0,
       moves: 0
@@ -814,6 +907,7 @@ dialog::backdrop { background: #202b3bbb; }
       mode: state.mode,
       layout: state.layout,
       day: state.day,
+      dealVersion: state.dealVersion ?? 1,
       selected: state.mode === "choice" ? -1 : 0,
       ...nextPieces(state, score),
       score,
@@ -827,6 +921,8 @@ dialog::backdrop { background: #202b3bbb; }
     if (!state || !Array.isArray(state.board) || state.board.length !== size * size) return false;
     if (state.layout != null && state.layout !== "empty" && state.layout !== "fixed") return false;
     if (state.day != null && (typeof state.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(state.day))) return false;
+    if (state.dealVersion != null && state.dealVersion !== 1 && state.dealVersion !== 2) return false;
+    if (state.dealVersion === 2 && !state.day) return false;
     if (state.layout === "fixed" && size !== SIZE) return false;
     if (!state.board.every((tile, i) => state.layout === "fixed" && fixedOpening[i] === WALL
       ? tile === WALL : Number.isInteger(tile) && Math.abs(tile) <= COLORS)) return false;
@@ -866,7 +962,7 @@ dialog::backdrop { background: #202b3bbb; }
       if (mode === "sequence") {
         const remaining = queue.filter(piece => piece !== null);
         if (!remaining.length) return null;
-        ({ queue, seed } = refillQueue(remaining, seed, score));
+        ({ queue, seed } = refillQueue(remaining, { seed }, score));
       }
     }
     if (!Array.isArray(queue)) return null;
@@ -883,7 +979,8 @@ dialog::backdrop { background: #202b3bbb; }
     return {
       board: restoredBoard,
       queue: queue.map(piece => piece && makePiece(piece.kind, piece.turn, piece.shield)),
-      mode, layout: saved.layout ?? "empty", day: saved.day ?? null, selected, seed, score, lines, moves
+      mode, layout: saved.layout ?? "empty", day: saved.day ?? null, dealVersion: saved.dealVersion ?? 1,
+      selected, seed, score, lines, moves
     };
   }
 
@@ -917,7 +1014,7 @@ dialog::backdrop { background: #202b3bbb; }
     }
   }
 
-  const api = { SIZE, WALL, UNDO_LIMIT, UndoHistory, openingBoard, gameDate, newGame, drawBatch, shapeOf, rotateCell, rotatePiece, clampToBoard, fits, firstFit, anyMove, inspectMove, place, validState, restoreState };
+  const api = { SIZE, WALL, UNDO_LIMIT, UndoHistory, openingBoard, gameDate, newGame, drawBatch, deal, shapeOf, rotateCell, rotatePiece, clampToBoard, fits, firstFit, anyMove, inspectMove, place, validState, restoreState };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.BlockDeck = api;
 })(globalThis);
