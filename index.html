@@ -130,6 +130,7 @@ h1, h2, p { margin: 0; }
 [data-color="10"], [data-ghost="10"] { --face: #ee9c46; --light: #ffca8a; --shade: #c27530; --edge: #a2602c; }
 [data-color="11"], [data-ghost="11"] { --face: #788ad9; --light: #b5c2f6; --shade: #586bb9; --edge: #4b5997; }
 [data-color="12"], [data-ghost="12"] { --face: #cf526d; --light: #f6a0b4; --shade: #a43656; --edge: #812940; }
+[data-color="wall"] { --face: #818991; --light: #afb6bc; --shade: #616a73; --edge: #4b535c; }
 .block, .cell[data-color]:not([data-color="0"]), .cell[data-ghost], .effect-tile {
   background: linear-gradient(to bottom, var(--light) 0 8%, var(--face) 8% 84%, var(--shade) 84% 100%);
   border-radius: 3px; box-shadow: inset 1px 0 0 var(--light), inset -2px 0 0 var(--shade), inset 0 -1px 0 var(--edge);
@@ -154,12 +155,18 @@ h1, h2, p { margin: 0; }
 .cell.will-crack { outline: 2px dashed #ffe3a0; outline-offset: -2px; }
 .cell.anchor::after { content: ""; position: absolute; inset: 22%; width: auto; height: auto; background: transparent; border: 2px solid var(--ink); }
 .cell.anchor.ghost-shield::after { inset: 5%; }
+#board .cell[data-color="wall"]::before {
+  inset: 26%; width: auto; height: auto; border: 2px solid var(--shade); border-radius: 24%;
+  background: transparent; box-shadow: inset 0 1px 0 var(--light), 0 1px 0 var(--light);
+}
+#board .cell[data-color="wall"]::after {
+  top: 47%; left: 36%; width: 28%; height: 6%; background: var(--edge); transform: rotate(-42deg);
+}
 .case-foot { min-height: 37px; padding: 0 4px; gap: 8px; }
 .game-status { display: flex; align-items: center; gap: 8px; font-weight: 650; font-size: .82rem; color: #485653; }
 .status-light { width: 9px; height: 9px; border-radius: 50%; background: #75c9a4; border: 1.5px solid var(--ink); }
 .status-light[data-mode="over"] { background: var(--orange); }
-.vents { display: flex; gap: 4px; padding-right: 2px; }
-.vents i { width: 4px; height: 11px; border-radius: 2px; transform: skewX(-20deg); background: #82887f; }
+.deal-day { color: var(--muted); font-size: .78rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 
 .score-case { grid-area: score; background: var(--gold); overflow: hidden; }
 .score-face {
@@ -290,6 +297,24 @@ dialog::backdrop { background: #202b3bbb; }
 .dialog-view { margin-top: 14px; }
 .dialog-view p { font-size: 1rem; line-height: 1.65; letter-spacing: -.035em; }
 .dialog-view p + p { margin-top: 10px; }
+.layout-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.layout-option {
+  display: grid; justify-items: center; gap: 10px; padding: 12px 6px 10px; cursor: pointer;
+  border: 2px solid var(--rule); border-radius: 8px; background: var(--paper);
+}
+.layout-option:has(input:checked) { background: #fff1c7; border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.layout-option:has(input:focus-visible) { outline: 3px solid #1c71a6; outline-offset: 2px; }
+.layout-preview {
+  width: min(94px, 88%); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr); gap: 1px; padding: 3px; border-radius: 4px; background: #25303c;
+}
+.layout-preview > span { border-radius: 1px; background: var(--face, #354353); }
+.layout-name { display: flex; align-items: center; gap: 5px; font-size: .95rem; font-weight: 750; }
+.layout-name input { margin: 0; accent-color: #283443; }
+.dialog-view .layout-description, #restart-warning { margin-top: 14px; font-size: .9rem; }
+#keep-playing[hidden] + #confirm-new { grid-column: 1 / -1; }
+.end-round { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; margin-top: 14px; }
+.end-round time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .dialog-primary, .dialog-actions { width: 100%; margin-top: 22px; }
 .end-score { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 13px; border: 1.5px solid var(--ink); border-radius: 7px; background: var(--gold); }
 .end-score b { font-size: 1.35rem; }
@@ -351,8 +376,7 @@ dialog::backdrop { background: #202b3bbb; }
   .case-foot { min-height: 25px; padding: 0 1px; }
   .game-status { font-size: .75rem; gap: 5px; }
   .status-light { width: 7px; height: 7px; }
-  .vents { gap: 3px; }
-  .vents i { height: 7px; width: 3px; }
+  .deal-day { font-size: .75rem; }
   .tray-case { padding: 10px 12px; gap: 8px; }
   .turn-button { min-height: 36px; min-width: 39px; }
   .rack { gap: 7px; }
@@ -443,7 +467,7 @@ dialog::backdrop { background: #202b3bbb; }
         </div>
         <div class="case-foot">
           <div class="game-status"><span id="status-light" class="status-light"></span><span id="status-text">플레이 중</span></div>
-          <div class="vents" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <span id="deal-day" class="deal-day" title="한국 날짜 기준"><time></time> · <span id="board-attempt"></span></span>
         </div>
         <p class="sr-only" id="board-help"></p>
       </section>
@@ -519,7 +543,9 @@ dialog::backdrop { background: #202b3bbb; }
       <h2 id="dialog-title"></h2>
       <div class="dialog-view" id="help-view" hidden>
         <p><strong>순차 배치</strong>에서는 현재 조각을 놓으면 미리 보인 다음 조각이 넘어와요. <strong>3개 중 선택</strong>에서는 세 조각을 원하는 순서로 놓으세요. 모두 쓰면 새 조각 세 개가 나와요. 모드마다 진행 상황과 최고 기록을 따로 저장해요.</p>
-        <p>조각은 주로 4칸과 5칸이에요. 5칸 조각은 일자·T자·L자·십자(+) 네 종류예요. 새로 뽑는 조각의 0.5%는 한 칸이에요.</p>
+        <p>조각 순서는 한국 시간 자정에 바뀌어요. 같은 날짜에 시작하면 두 모드와 두 시작판에서 같은 조각이 같은 방향으로 나와요. 회차는 이 브라우저에서 같은 날짜·모드로 게임을 시작할 때마다 올라가요. 이어하기와 되돌리기는 같은 회차예요.</p>
+        <p>새 게임에서 빈 판이나 영구 블록 판을 고르세요. 영구 블록 판의 회색 8칸은 줄 완성에 포함되고, 줄을 지워도 남아요. 색깔 블록은 줄을 완성하면 사라져요.</p>
+        <p>조각은 주로 4칸과 5칸이에요. 5칸 조각은 일자·T자·L자·십자(+) 네 종류예요. 5칸 L자는 가로와 세로가 각각 3칸이에요. 새로 뽑는 조각의 0.5%는 한 칸이에요.</p>
         <p>조각의 가운데가 커서를 따라가다가 판 끝에 닿으면 가장자리를 따라 움직여요. 드래그 중에는 트레이로 돌아오거나 <kbd>Esc</kbd>를 눌러 취소할 수 있어요.</p>
         <p>조각을 <kbd>Q</kbd>로 왼쪽, <kbd>E</kbd>나 마우스 우클릭으로 오른쪽으로 90도 돌릴 수 있어요. 터치할 때는 트레이의 회전 버튼을 쓰세요.</p>
         <p><strong>가로나 세로로 8칸을 채우세요.</strong> 놓은 칸마다 1점, 완성한 줄마다 10점을 얻어요.</p>
@@ -530,11 +556,23 @@ dialog::backdrop { background: #202b3bbb; }
         <button class="action-button new-button dialog-primary" type="button" id="help-done">알겠어요</button>
       </div>
       <div class="dialog-view" id="restart-view" hidden>
-        <p>지금까지 놓은 조각과 점수가 초기화돼요. 최고 기록은 보관돼요.</p>
-        <div class="dialog-actions"><button class="action-button" type="button" id="keep-playing">계속하기</button><button class="action-button new-button" type="button" id="confirm-new">새 게임</button></div>
+        <div class="layout-options" role="radiogroup" aria-labelledby="dialog-title">
+          <label class="layout-option">
+            <span class="layout-preview" data-layout="empty" aria-hidden="true"></span>
+            <span class="layout-name"><input type="radio" name="layout" value="empty" checked>빈 판</span>
+          </label>
+          <label class="layout-option">
+            <span class="layout-preview" data-layout="fixed" aria-hidden="true"></span>
+            <span class="layout-name"><input type="radio" name="layout" value="fixed">영구 블록 판</span>
+          </label>
+        </div>
+        <p class="layout-description">회색 블록은 줄을 채워도 그 자리에 남아요. 색깔 블록은 줄과 함께 사라져요.</p>
+        <p id="restart-warning" hidden>새로 시작하면 이 모드의 현재 점수와 배치가 초기화돼요.</p>
+        <div class="dialog-actions"><button class="action-button" type="button" id="keep-playing">취소</button><button class="action-button new-button" type="button" id="confirm-new">게임 시작</button></div>
       </div>
       <div class="dialog-view" id="over-view" hidden>
         <p id="over-message"></p>
+        <div class="end-round" id="end-round" hidden><span><time></time> · <span id="end-mode"></span></span><strong id="end-attempt"></strong></div>
         <div class="end-score"><span>최종 점수</span><b id="end-score">0점</b></div>
         <div class="dialog-actions"><button class="action-button" id="end-undo" type="button" aria-keyshortcuts="Control+Z Meta+Z" disabled>되돌리기 <span class="undo-count" aria-hidden="true"></span></button><button class="action-button new-button" type="button" id="end-new">새 게임</button></div>
       </div>
@@ -548,10 +586,22 @@ dialog::backdrop { background: #202b3bbb; }
   const LEGACY_SIZE = 10;
   const UNDO_LIMIT = 3;
   const SINGLE_CHANCE = 0.005;
+  const WALL = 13;
+  const layoutTiles = { ".": 0, "#": WALL, R: 12, P: 5, B: 4 };
+  const fixedOpening = [
+    "...##...",
+    "..R..R..",
+    ".P....P.",
+    "#..BB..#",
+    "#..BB..#",
+    ".P....P.",
+    "..R..R..",
+    "...##..."
+  ].flatMap(row => Array.from(row, mark => layoutTiles[mark]));
   const templates = {
     longLine: { color: 1, rows: ["11111"] },
     longTee:  { color: 12, rows: ["111", "010", "010"] },
-    longEll:  { color: 7, rows: ["10", "10", "10", "11"] },
+    longEll:  { color: 7, rows: ["100", "100", "111"] },
     cross:    { color: 6, rows: ["010", "111", "010"] },
     single:   { color: 8, rows: ["1"] },
     line:   { color: 9, rows: ["1111"] },
@@ -596,6 +646,8 @@ dialog::backdrop { background: #202b3bbb; }
   const pool = Object.keys(templates).filter(kind => kind !== "single");
   const pick = (items, random) => items[Math.floor(random() * items.length)];
   const shapeOf = piece => shapes[piece.kind][piece.turn];
+  // Use the same opening deal on either board, with pieces that fit the symmetric layout.
+  const openingPool = pool.filter(kind => firstFit(fixedOpening, makePiece(kind)) !== null);
 
   function makePiece(kind, turn = 0, shield = null) {
     return { kind, turn, color: templates[kind].color, shield };
@@ -616,31 +668,33 @@ dialog::backdrop { background: #202b3bbb; }
     return rotated;
   }
 
-  function drawBatch(random, score) {
+  function drawBatch(random, score, opening = false) {
     const kinds = [];
+    const options = opening ? openingPool : pool;
     const batch = Array.from({ length: 3 }, () => {
-      const kind = pick(pool.filter(option => !kinds.includes(option)), random);
+      const kind = pick(options.filter(option => !kinds.includes(option)), random);
       kinds.push(kind);
       return makePiece(kind, Math.floor(random() * shapes[kind].length));
     });
     // One uniformly chosen slot in 1.5% of batches gives each slot a 0.5% chance.
     if (random() < SINGLE_CHANCE * batch.length) batch[Math.floor(random() * batch.length)] = makePiece("single");
     const unshielded = batch.slice();
+    // Always consume the same draws so a player's score never changes future shapes or orientations.
     for (const threshold of shieldScores) {
-      if (score < threshold) break;
       const [piece] = unshielded.splice(Math.floor(random() * unshielded.length), 1);
-      piece.shield = Math.floor(random() * shapeOf(piece).cells.length);
+      const cell = Math.floor(random() * shapeOf(piece).cells.length);
+      if (score >= threshold) piece.shield = cell;
     }
     return batch;
   }
 
   // Keeping the seed in each position makes undo and reload reproduce the same deal.
-  function deal(seed, score) {
+  function deal(seed, score, opening = false) {
     function random() {
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
       return seed / 2 ** 32;
     }
-    const queue = drawBatch(random, score);
+    const queue = drawBatch(random, score, opening);
     return { queue, seed };
   }
 
@@ -657,25 +711,28 @@ dialog::backdrop { background: #202b3bbb; }
     return queue.some(Boolean) ? { queue, seed: state.seed } : deal(state.seed, score);
   }
 
-  function openingBoard() {
-    const board = Array(SIZE * SIZE).fill(0);
-    const pieces = [
-      ["square", 0, 0, 6], ["ell", 2, 6, 5], ["zee", 1, 1, 3], ["tee", 2, 3, 4]
-    ];
-    for (const [kind, turn, x, y] of pieces) {
-      const piece = makePiece(kind, turn);
-      for (const [dx, dy] of shapeOf(piece).cells) board[(y + dy) * SIZE + x + dx] = piece.color;
-    }
-    return board;
+  function openingBoard(layout = "empty") {
+    return layout === "fixed" ? fixedOpening.slice() : Array(SIZE * SIZE).fill(0);
   }
 
-  function newGame(random = Math.random, mode = "sequence") {
+  function gameDate(now = new Date()) {
+    return new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  }
+
+  function seedFromDate(day) {
+    let hash = 2166136261;
+    for (const digit of day) hash = Math.imul(hash ^ digit.charCodeAt(0), 16777619);
+    return hash >>> 0;
+  }
+
+  function newGame(day = gameDate(), mode = "sequence", layout = "empty") {
     return {
-      board: openingBoard(),
+      board: openingBoard(layout),
       mode,
+      layout,
+      day,
       selected: mode === "choice" ? -1 : 0,
-      queue: [makePiece("longLine"), makePiece("ell"), makePiece("tee")],
-      seed: Math.floor(random() * 2 ** 32),
+      ...deal(seedFromDate(day), 0, true),
       score: 0,
       lines: 0,
       moves: 0
@@ -729,7 +786,7 @@ dialog::backdrop { background: #202b3bbb; }
       lineCount++;
       for (let n = 0; n < SIZE; n++) {
         const i = start + n * stride;
-        hits.set(i, (hits.get(i) || 0) + 1);
+        if (filled[i] !== WALL) hits.set(i, (hits.get(i) || 0) + 1);
       }
     }
     // A row made entirely of shields may stay full after a hit. Only newly completed lines count.
@@ -755,6 +812,8 @@ dialog::backdrop { background: #202b3bbb; }
     const next = {
       board,
       mode: state.mode,
+      layout: state.layout,
+      day: state.day,
       selected: state.mode === "choice" ? -1 : 0,
       ...nextPieces(state, score),
       score,
@@ -766,7 +825,11 @@ dialog::backdrop { background: #202b3bbb; }
 
   function validPosition(state, size = SIZE) {
     if (!state || !Array.isArray(state.board) || state.board.length !== size * size) return false;
-    if (!state.board.every(tile => Number.isInteger(tile) && Math.abs(tile) <= COLORS)) return false;
+    if (state.layout != null && state.layout !== "empty" && state.layout !== "fixed") return false;
+    if (state.day != null && (typeof state.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(state.day))) return false;
+    if (state.layout === "fixed" && size !== SIZE) return false;
+    if (!state.board.every((tile, i) => state.layout === "fixed" && fixedOpening[i] === WALL
+      ? tile === WALL : Number.isInteger(tile) && Math.abs(tile) <= COLORS)) return false;
     return [state.score, state.lines, state.moves].every(n => Number.isSafeInteger(n) && n >= 0);
   }
 
@@ -810,7 +873,7 @@ dialog::backdrop { background: #202b3bbb; }
     queue = queue.map(piece => piece && Object.hasOwn(retiredKinds, piece.kind) ? { ...piece, kind: retiredKinds[piece.kind] } : piece);
     if (!validQueue({ queue, seed, mode, selected })) return null;
     let restoredBoard = board.slice();
-    if (moves === 0) restoredBoard = openingBoard();
+    if (oldSize !== SIZE && moves === 0) restoredBoard = openingBoard();
     else if (oldSize !== SIZE) {
       // Use the same bottom-centred crop for a game and all of its undo snapshots.
       const left = Math.floor((oldSize - SIZE) / 2);
@@ -820,7 +883,7 @@ dialog::backdrop { background: #202b3bbb; }
     return {
       board: restoredBoard,
       queue: queue.map(piece => piece && makePiece(piece.kind, piece.turn, piece.shield)),
-      mode, selected, seed, score, lines, moves
+      mode, layout: saved.layout ?? "empty", day: saved.day ?? null, selected, seed, score, lines, moves
     };
   }
 
@@ -854,7 +917,7 @@ dialog::backdrop { background: #202b3bbb; }
     }
   }
 
-  const api = { SIZE, UNDO_LIMIT, UndoHistory, newGame, drawBatch, shapeOf, rotateCell, rotatePiece, clampToBoard, fits, firstFit, anyMove, inspectMove, place, validState, restoreState };
+  const api = { SIZE, WALL, UNDO_LIMIT, UndoHistory, openingBoard, gameDate, newGame, drawBatch, shapeOf, rotateCell, rotatePiece, clampToBoard, fits, firstFit, anyMove, inspectMove, place, validState, restoreState };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.BlockDeck = api;
 })(globalThis);
@@ -875,6 +938,7 @@ dialog::backdrop { background: #202b3bbb; }
   const turnButtons = document.querySelectorAll(".turn-button");
   const carry = byId("carry");
   const dialog = byId("dialog");
+  const layoutInputs = Array.from(dialog.querySelectorAll('input[name="layout"]'));
   const undoButtons = [byId("undo"), byId("end-undo")];
   const savePrefix = "block-deck.8x8.";
   const names = { longLine: "다섯 칸 막대", longTee: "다섯 칸 T자", longEll: "다섯 칸 L자", cross: "십자", single: "한 칸 조각", line: "네 칸 막대", square: "정사각형", tee: "T자", ell: "L자", jay: "역 L자", ess: "S자", zee: "Z자" };
@@ -890,15 +954,18 @@ dialog::backdrop { background: #202b3bbb; }
   const legacyMode = Array.isArray(legacy.state?.tray) ? "choice" : "sequence";
   const settings = readSave(savePrefix + "settings") || {};
   const memorySaves = new Map();
+  const memoryAttempts = new Map();
   function loadSession(mode) {
     const saved = memorySaves.get(mode) ?? readSave(savePrefix + mode) ?? (mode === legacyMode ? legacy : {});
     const restored = game.restoreState(saved.state, mode);
-    const state = restored || game.newGame(Math.random, mode);
+    const state = restored || game.newGame(game.gameDate(), mode);
     const savedUndo = saved.undo ?? { snapshots: [saved.previous] };
     const undoHistory = restored ? new game.UndoHistory(savedUndo, state.moves, mode) : new game.UndoHistory();
-    return { state, undoHistory, best: Math.max(Number.isSafeInteger(saved.best) ? saved.best : 0, state.score) };
+    const needsStart = !restored || (!saved.state?.layout && !state.moves && undoHistory.remaining === game.UNDO_LIMIT);
+    const attempt = restored && Number.isSafeInteger(saved.attempt) && saved.attempt > 0 ? saved.attempt : 0;
+    return { state, undoHistory, needsStart, attempt, best: Math.max(Number.isSafeInteger(saved.best) ? saved.best : 0, state.score) };
   }
-  let { state, undoHistory, best } = loadSession(Object.hasOwn(modeNames, settings.mode) ? settings.mode : legacyMode);
+  let { state, undoHistory, needsStart, attempt, best } = loadSession(Object.hasOwn(modeNames, settings.mode) ? settings.mode : legacyMode);
   let sound = (settings.sound ?? legacy.sound) !== false;
   let ended = !game.anyMove(state);
   let cursor = null;
@@ -918,7 +985,7 @@ dialog::backdrop { background: #202b3bbb; }
       best = otherBest;
       byId("best").textContent = best.toLocaleString("ko-KR");
     }
-    const data = { state, undo: undoHistory, best };
+    const data = { state, undo: undoHistory, attempt, best };
     try { localStorage.setItem(key, JSON.stringify(data)); memorySaves.delete(state.mode); }
     catch { memorySaves.set(state.mode, data); }
   }
@@ -1000,6 +1067,18 @@ dialog::backdrop { background: #202b3bbb; }
         row.append(cell);
       }
       board.append(row);
+    }
+  }
+
+  const tileColor = tile => tile === game.WALL ? "wall" : String(Math.abs(tile));
+
+  function buildLayoutPreviews() {
+    for (const preview of dialog.querySelectorAll(".layout-preview")) {
+      for (const tile of game.openingBoard(preview.dataset.layout)) {
+        const cell = document.createElement("span");
+        cell.dataset.color = tileColor(tile);
+        preview.append(cell);
+      }
     }
   }
 
@@ -1180,10 +1259,10 @@ dialog::backdrop { background: #202b3bbb; }
   function render() {
     clearPreview();
     state.board.forEach((tile, i) => {
-      const color = Math.abs(tile);
-      cells[i].dataset.color = color;
+      const description = tile === game.WALL ? "회색 영구 블록" : colors[Math.abs(tile)] + (tile < 0 ? " 방패 칸" : "");
+      cells[i].dataset.color = tileColor(tile);
       cells[i].classList.toggle("shielded", tile < 0);
-      cells[i].setAttribute("aria-label", (Math.floor(i / size) + 1) + "행 " + (i % size + 1) + "열, " + colors[color] + (tile < 0 ? " 방패 칸" : ""));
+      cells[i].setAttribute("aria-label", (Math.floor(i / size) + 1) + "행 " + (i % size + 1) + "열, " + description);
     });
     const choice = state.mode === "choice";
     renderRack();
@@ -1201,6 +1280,14 @@ dialog::backdrop { background: #202b3bbb; }
     byId("score-value").textContent = state.score + "점";
     byId("best").textContent = best.toLocaleString("ko-KR");
     byId("lines").textContent = state.lines.toLocaleString("ko-KR");
+    const dayLabel = byId("deal-day");
+    dayLabel.hidden = !state.day || !attempt;
+    if (!dayLabel.hidden) {
+      const date = dayLabel.querySelector("time");
+      date.dateTime = state.day;
+      date.textContent = state.day.replaceAll("-", ".");
+      byId("board-attempt").textContent = attempt.toLocaleString("ko-KR") + "회차";
+    }
     for (const button of undoButtons) {
       button.disabled = !undoHistory.available;
       button.querySelector(".undo-count").textContent = undoHistory.remaining + "/" + game.UNDO_LIMIT;
@@ -1468,16 +1555,38 @@ dialog::backdrop { background: #202b3bbb; }
     inform("마지막 배치를 되돌렸어요. 남은 횟수 " + undoHistory.remaining + "회");
   }
 
-  function restart() {
+  async function reserveAttempt(day, mode) {
+    const key = savePrefix + "attempt." + day + "." + mode;
+    function increment() {
+      const saved = readSave(key);
+      const next = 1 + Math.max(Number.isSafeInteger(saved) ? saved : 0, memoryAttempts.get(key) || 0, state.day === day && state.mode === mode ? attempt : 0);
+      memoryAttempts.set(key, next);
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* Keep counting in this tab. */ }
+      return next;
+    }
+    // Serialize starts from tabs sharing this browser and origin.
+    try { if (navigator.locks) return await navigator.locks.request(key, increment); }
+    catch { /* Some offline or embedded contexts disable Web Locks. */ }
+    return increment();
+  }
+
+  async function restart(layout) {
+    const startButton = byId("confirm-new");
+    if (startButton.disabled) return;
+    startButton.disabled = true;
+    const day = game.gameDate();
+    attempt = await reserveAttempt(day, state.mode);
     stopDrag();
     stopEffects();
     if (dialog.open) dialog.close();
-    state = game.newGame(Math.random, state.mode);
+    state = game.newGame(day, state.mode, layout);
+    needsStart = false;
     undoHistory = new game.UndoHistory();
     boardPointer = null;
     ended = false;
     render();
     persist();
+    startButton.disabled = false;
     inform("새 게임을 시작했어요.");
   }
 
@@ -1487,25 +1596,52 @@ dialog::backdrop { background: #202b3bbb; }
     stopEffects();
     boardPointer = null;
     persist();
-    ({ state, undoHistory, best } = loadSession(mode));
+    ({ state, undoHistory, needsStart, attempt, best } = loadSession(mode));
     ended = !game.anyMove(state);
     render();
     saveSettings();
-    if (ended) showDialog("over");
+    if (needsStart) showDialog("restart");
+    else if (ended) showDialog("over");
     else inform(modeNames[mode] + " 모드");
   }
 
-  const dialogTitles = { help: "게임 방법", restart: "새 게임을 시작할까요?", over: "게임 종료" };
+  const dialogTitles = { help: "게임 방법", restart: "시작판 선택", over: "게임 종료" };
   function showDialog(view) {
     stopDrag();
     boardPointer = null;
     clearPreview();
     for (const name of Object.keys(dialogTitles)) byId(name + "-view").hidden = name !== view;
     byId("dialog-title").textContent = dialogTitles[view];
+    byId("close-dialog").hidden = view === "restart" && needsStart;
+    let focusTarget = byId(view === "help" ? "help-done" : "end-new");
+    if (view === "restart") {
+      clearTimeout(endTimer);
+      focusTarget = layoutInputs.find(input => input.value === state.layout);
+      focusTarget.checked = true;
+      byId("keep-playing").hidden = needsStart;
+      byId("restart-warning").hidden = needsStart || ended || !state.moves;
+    }
     byId("end-score").textContent = state.score.toLocaleString("ko-KR") + "점";
+    if (view === "over") {
+      byId("end-round").hidden = !state.day || !attempt;
+      if (!byId("end-round").hidden) {
+        const date = byId("end-round").querySelector("time");
+        date.dateTime = state.day;
+        date.textContent = state.day.replaceAll("-", ".");
+        byId("end-mode").textContent = modeNames[state.mode];
+        byId("end-attempt").textContent = attempt.toLocaleString("ko-KR") + "회차";
+      }
+    }
     if (!dialog.open) dialog.showModal();
-    const focusId = view === "help" ? "help-done" : view === "restart" ? "keep-playing" : "end-new";
-    byId(focusId).focus({ preventScroll: true });
+    focusTarget.focus({ preventScroll: true });
+  }
+
+  function dismissDialog() {
+    if (!byId("restart-view").hidden) {
+      if (needsStart || byId("confirm-new").disabled) return;
+      if (ended) { showDialog("over"); return; }
+    }
+    dialog.close();
   }
 
   byId("help").addEventListener("click", () => showDialog("help"));
@@ -1513,15 +1649,16 @@ dialog::backdrop { background: #202b3bbb; }
   turnButtons.forEach(button => {
     button.addEventListener("click", () => rotateCurrent(Number(button.dataset.turn)));
   });
-  byId("new-game").addEventListener("click", () => state.moves && !ended ? showDialog("restart") : restart());
-  byId("confirm-new").addEventListener("click", restart);
-  byId("end-new").addEventListener("click", restart);
+  byId("new-game").addEventListener("click", () => showDialog("restart"));
+  byId("confirm-new").addEventListener("click", () => restart(layoutInputs.find(input => input.checked).value));
+  byId("end-new").addEventListener("click", () => showDialog("restart"));
   undoButtons.forEach(button => button.addEventListener("click", undo));
-  for (const id of ["close-dialog", "help-done", "keep-playing"]) byId(id).addEventListener("click", () => dialog.close());
+  for (const id of ["close-dialog", "help-done", "keep-playing"]) byId(id).addEventListener("click", dismissDialog);
+  dialog.addEventListener("cancel", event => { event.preventDefault(); dismissDialog(); });
   dialog.addEventListener("click", event => {
     if (event.target !== dialog) return;
     const r = dialog.getBoundingClientRect();
-    if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
+    if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dismissDialog();
   });
   byId("sound").addEventListener("click", () => {
     sound = !sound;
@@ -1584,9 +1721,11 @@ dialog::backdrop { background: #202b3bbb; }
   });
 
   buildBoard();
+  buildLayoutPreviews();
   render();
   syncSound();
-  if (ended) showDialog("over");
+  if (needsStart) showDialog("restart");
+  else if (ended) showDialog("over");
 })();
 
 </script>
